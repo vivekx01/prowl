@@ -1,0 +1,16 @@
+httpx
+langchain
+langchain-openrouter
+pydantic
+python-dotenv
+pandas
+asyncio
+tenacity
+questionary
+sqlalchemy
+fastapi
+uvicorn[standard]
+python-multipart
+pypdf
+celery[redis]
+redis
