@@ -28,6 +28,7 @@ class CompanyUpdate(BaseModel):
 class CompanyOut(CompanyBase):
     id: int
     created_at: datetime
+    listing_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -47,6 +48,7 @@ class ScoreOut(BaseModel):
 
 class ApplicationOut(BaseModel):
     id: int
+    listing_id: int
     status: str
     applied_at: Optional[datetime]
     notes: str
@@ -156,3 +158,37 @@ class ScrapeStatus(BaseModel):
     started_at: Optional[str]
     log: list[str]
     result: Optional[dict]
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+class UserOut(BaseModel):
+    user_id: int
+    email: str
+    name: str
+    is_admin: bool
+
+
+# ---------------------------------------------------------------------------
+# Score Run
+# ---------------------------------------------------------------------------
+
+class ScoreRunOut(BaseModel):
+    id: int
+    user_id: int
+    celery_task_id: Optional[str]
+    status: str
+    started_at: Optional[datetime]
+    finished_at: Optional[datetime]
+    companies_total: int
+    companies_done: int
+    apply_count: int
+    input_tokens: int
+    output_tokens: int
+    current_company_id: Optional[int]
+    company_results: list
+    days_back: Optional[int]
+
+    model_config = {"from_attributes": True}

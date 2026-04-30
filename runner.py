@@ -1,25 +1,22 @@
 """
-Scrape orchestration.
-Called by Celery tasks (tasks.py) and the CLI (main.py).
+Scrape orchestration — fetch and store raw listings only.
+No LLM work here. Scoring is per-user via scorer.py.
 """
 
-import asyncio
 import csv
 import json
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from sqlalchemy.exc import IntegrityError
+
 from sqlalchemy.orm import Session
 
 import config
 from db.database import SessionLocal
-from db.models import (
-    Company, JobListing, JobScore,
-    Profile, ScrapeRun, ScrapeRunLog, Setting,
-)
+from db.models import Company, JobListing, JobScore, Profile, ScrapeRun, ScrapeRunLog
 from scrapers import get_scraper
-from llm.filter import JobFilter
 
 
 # ---------------------------------------------------------------------------
@@ -39,11 +36,6 @@ def parse_posted_on(raw: str) -> datetime | None:
         return datetime.fromisoformat(raw.strip())
     except ValueError:
         return None
-
-
-def get_setting(db: Session, key: str, default: str) -> str:
-    row = db.query(Setting).filter_by(key=key).first()
-    return row.value if row else default
 
 
 # ---------------------------------------------------------------------------
@@ -84,12 +76,29 @@ def seed_defaults(db: Session):
     if not db.query(Profile).first():
         profile_path = Path(config.PROFILE_PATH)
         if profile_path.exists():
-            db.add(Profile(content=profile_path.read_text(encoding="utf-8")))
-    defaults = {"max_job_age_days": "30"}
-    for key, val in defaults.items():
-        if not db.query(Setting).filter_by(key=key).first():
-            db.add(Setting(key=key, value=val))
+            db.add(Profile(content=profile_path.read_text(encoding="utf-8"), user_id=None))
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Cleanup
+# ---------------------------------------------------------------------------
+
+def cleanup_old_listings(db: Session) -> int:
+    cutoff = datetime.utcnow() - timedelta(days=config.LISTING_RETENTION_DAYS)
+    old_ids = [
+        row[0] for row in
+        db.query(JobListing.id)
+        .filter(JobListing.first_seen_at < cutoff)
+        .filter(~JobListing.applications.any())
+        .all()
+    ]
+    if not old_ids:
+        return 0
+    db.query(JobScore).filter(JobScore.listing_id.in_(old_ids)).delete(synchronize_session=False)
+    db.query(JobListing).filter(JobListing.id.in_(old_ids)).delete(synchronize_session=False)
+    db.commit()
+    return len(old_ids)
 
 
 # ---------------------------------------------------------------------------
@@ -105,15 +114,13 @@ def _log_level(message: str) -> str:
     msg = message.lower()
     if "error" in msg or "failed" in msg:
         return "error"
-    if "✓" in message or "apply" in msg:
-        return "success"
     if "warning" in msg or "warn" in msg:
         return "warning"
     return "info"
 
 
 # ---------------------------------------------------------------------------
-# Main entry point (called from Celery task and CLI)
+# Main entry point
 # ---------------------------------------------------------------------------
 
 async def run_scrape(run_id: int, company_ids: list[int] | None = None) -> None:
@@ -133,7 +140,6 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
         print(message)
         _write_log(db, run_id, message, level or _log_level(message))
 
-    # Resolve companies — honour resume by skipping already-completed ones
     completed_ids: set[int] = set(json.loads(run.completed_company_ids or "[]"))
 
     q = db.query(Company).filter_by(active=True)
@@ -146,38 +152,29 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
     run.companies_done = len(completed_ids)
     db.commit()
 
-    log(
-        f"Filter model: {config.FILTER_MODEL}  ·  "
-        f"Score model: {config.SCORE_MODEL}"
-    )
+    purged = cleanup_old_listings(db)
+    if purged:
+        log(f"Purged {purged} listings older than {config.LISTING_RETENTION_DAYS} days")
 
-    profile_row = db.query(Profile).first()
-    profile_text = (
-        profile_row.content if profile_row
-        else config.PROFILE_PATH.read_text(encoding="utf-8")
-    )
-    max_age_days = int(get_setting(db, "max_job_age_days", "30"))
-    cutoff = datetime.utcnow() - timedelta(days=max_age_days)
 
     total_new = run.new_listings
-    total_apply = run.apply_count
-    inp_tokens = run.input_tokens
-    out_tokens = run.output_tokens
 
     try:
-        # Group companies by platform so we open one scraper per platform
         from collections import defaultdict
         by_platform: dict[str, list[Company]] = defaultdict(list)
         for c in companies:
             by_platform[c.platform].append(c)
 
-        job_filter = JobFilter(profile_text)
-
         for platform, platform_companies in by_platform.items():
             scraper_cls = get_scraper(platform)
             async with scraper_cls() as scraper:
                 for company in platform_companies:
-                    log(f"\nProcessing: {company.name} [{platform}]")
+                    db.refresh(run)
+                    if run.status == "cancelled":
+                        log("Run cancelled — stopping", "warning")
+                        return
+
+                    log(f"\nFetching: {company.name} [{platform}]")
                     company_row = {"name": company.name, **(company.config or {})}
 
                     try:
@@ -187,26 +184,34 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                         _mark_company_done(db, run, company.id, completed_ids)
                         continue
 
-                    # Dedup + age filter
-                    new_listings = []
-                    listing_to_db_id: dict[int, int] = {}
-
+                    new_count = 0
+                    seen_in_batch: set[str] = set()
                     for listing in raw_listings:
-                        posted_date = parse_posted_on(listing.posted_on)
-                        if posted_date and posted_date < cutoff:
+                        if listing.job_id in seen_in_batch:
                             continue
-
                         existing = (
                             db.query(JobListing)
                             .filter_by(company_id=company.id, job_req_id=listing.job_id)
                             .first()
                         )
                         if existing:
-                            if existing.score is not None:
-                                continue
-                            listing_to_db_id[id(listing)] = existing.id
+                            continue
+
+                        seen_in_batch.add(listing.job_id)
+
+                        # New listing — fetch full detail (description + startDate)
+                        detail = await scraper.fetch_detail(listing)
+                        start_date = detail.get("start_date")
+                        if start_date:
+                            try:
+                                posted_date = datetime.fromisoformat(start_date[:10])
+                            except ValueError:
+                                posted_date = parse_posted_on(listing.posted_on)
                         else:
-                            db_listing = JobListing(
+                            posted_date = parse_posted_on(listing.posted_on)
+
+                        try:
+                            db.add(JobListing(
                                 company_id=company.id,
                                 job_req_id=listing.job_id,
                                 title=listing.title,
@@ -216,78 +221,15 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                                 url=listing.url,
                                 department=listing.department or "",
                                 platform=platform,
-                            )
-                            db.add(db_listing)
-                            db.flush()
-                            listing_to_db_id[id(listing)] = db_listing.id
-                            total_new += 1
-
-                        new_listings.append(listing)
-
-                    db.commit()
-
-                    if not new_listings:
-                        log("  No new listings")
-                        _mark_company_done(db, run, company.id, completed_ids)
-                        continue
-
-                    log(f"  {len(new_listings)} new → stage 1 filter")
-                    candidates = await job_filter.stage1_filter(new_listings)
-
-                    # Write skip scores for stage-1 rejects immediately
-                    candidate_obj_ids = {id(c) for c in candidates}
-                    scored_db_ids: set[int] = set()
-                    for listing in new_listings:
-                        if id(listing) not in candidate_obj_ids:
-                            db_id = listing_to_db_id.get(id(listing))
-                            if db_id and db_id not in scored_db_ids:
-                                db.add(JobScore(
-                                    listing_id=db_id,
-                                    score=0.0,
-                                    verdict="skip",
-                                    reason="filtered by stage 1",
-                                ))
-                                scored_db_ids.add(db_id)
-                    db.commit()
-
-                    if not candidates:
-                        log("  None passed stage 1")
-                        _mark_company_done(db, run, company.id, completed_ids)
-                        continue
-
-                    log(f"  {len(candidates)} candidates → scoring")
-                    for listing in candidates:
-                        print(f"  Scanning: {listing.title[:70]:<75}", end="\r", flush=True)
-                        listing.description = await scraper.fetch_description(listing)
-                        score_result = await job_filter.stage2_score(listing)
-
-                        db_id = listing_to_db_id.get(id(listing))
-                        if db_id and db_id not in scored_db_ids:
-                            db.add(JobScore(
-                                listing_id=db_id,
-                                score=score_result.get("score", 0),
-                                verdict=score_result.get("verdict", "skip"),
-                                reason=score_result.get("reason", ""),
+                                description=detail.get("description") or None,
                             ))
-                            scored_db_ids.add(db_id)
                             db.commit()
-
-                        if score_result.get("verdict") == "apply":
-                            total_apply += 1
-                            log(
-                                f"  ✓ [{score_result['score']:.1f}/10] {listing.title}"
-                                f" — {score_result['reason'][:90]}",
-                                "success",
-                            )
-
-                        await asyncio.sleep(0.5)
-
-                    print(" " * 80, end="\r", flush=True)
+                            new_count += 1
+                            total_new += 1
+                        except IntegrityError:
+                            db.rollback()
+                    log(f"  {new_count} new listings stored")
                     _mark_company_done(db, run, company.id, completed_ids)
-
-            inp_tokens_now, out_tokens_now = job_filter.token_usage
-            inp_tokens = inp_tokens_now
-            out_tokens = out_tokens_now
 
         run.status = "completed"
 
@@ -298,15 +240,11 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
     finally:
         run.finished_at = datetime.utcnow()
         run.new_listings = total_new
-        run.apply_count = total_apply
-        run.input_tokens = inp_tokens
-        run.output_tokens = out_tokens
         db.commit()
 
         summary = (
             f"\n{'='*50}\n"
-            f"New listings: {total_new}  |  Recommended to apply: {total_apply}\n"
-            f"Tokens — input: {inp_tokens:,}  output: {out_tokens:,}  total: {inp_tokens + out_tokens:,}"
+            f"New listings stored: {total_new}"
         )
         log(summary)
 

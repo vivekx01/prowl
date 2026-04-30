@@ -11,6 +11,7 @@ RESULTS_DIR = BASE_DIR / "data" / "results"
 DB_PATH = BASE_DIR / "data" / "jobs.db"
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "prowl-secret-key-change-in-production")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 FILTER_MODEL = os.getenv("FILTER_MODEL", "google/gemini-2.5-flash-lite")
@@ -20,6 +21,7 @@ REQUEST_DELAY = float(os.getenv("REQUEST_DELAY", "1.5"))
 MAX_JOBS_PER_COMPANY = int(os.getenv("MAX_JOBS_PER_COMPANY", "200"))
 
 REQUEST_TIMEOUT = 30
+LISTING_RETENTION_DAYS = int(os.getenv("LISTING_RETENTION_DAYS", "60"))
 
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)

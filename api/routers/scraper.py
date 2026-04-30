@@ -1,18 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from api.deps import get_admin_user
 from db.database import get_db
-from db.models import ScrapeRun
+from db.models import ScrapeRun, User
 from api.schemas import ScrapeRequest
 
 router = APIRouter(prefix="/scraper", tags=["scraper"])
 
 
 @router.post("/run", status_code=202)
-def start_scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
+def start_scrape(
+    body: ScrapeRequest,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
     from tasks import scrape_task
 
-    # Reject if a run is already in progress
     active = db.query(ScrapeRun).filter(ScrapeRun.status.in_(["pending", "running"])).first()
     if active:
         raise HTTPException(409, f"Run #{active.id} is already in progress")
@@ -35,7 +39,11 @@ def start_scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/stop/{run_id}", status_code=200)
-def stop_scrape(run_id: int, db: Session = Depends(get_db)):
+def stop_scrape(
+    run_id: int,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
     from datetime import datetime
     from celery_app import celery_app
 
@@ -56,7 +64,11 @@ def stop_scrape(run_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/resume/{run_id}", status_code=202)
-def resume_scrape(run_id: int, db: Session = Depends(get_db)):
+def resume_scrape(
+    run_id: int,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
     from tasks import scrape_task
     import json
 
@@ -73,7 +85,6 @@ def resume_scrape(run_id: int, db: Session = Depends(get_db)):
     original_ids = json.loads(failed_run.company_ids) if failed_run.company_ids else None
     completed_ids = set(json.loads(failed_run.completed_company_ids or "[]"))
 
-    # Pending = original set minus already completed
     if original_ids:
         pending_ids = [i for i in original_ids if i not in completed_ids]
     else:

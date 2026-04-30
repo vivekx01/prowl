@@ -181,7 +181,9 @@ export default function CheckJDPage() {
         <div>
           {score.isError && (
             <div className="card p-4 border border-red-900/40 bg-red-500/5">
-              <p className="text-sm text-red-400">{score.error.message}</p>
+              <p className="text-sm text-red-400">
+                {(score.error as any)?.response?.data?.detail ?? score.error.message}
+              </p>
             </div>
           )}
 

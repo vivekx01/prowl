@@ -93,64 +93,6 @@ function ResumeUpload({ onGenerated }: { onGenerated: (text: string) => void }) 
 }
 
 // ---------------------------------------------------------------------------
-// Scrape settings card
-// ---------------------------------------------------------------------------
-
-function ScrapeSettings() {
-  const qc = useQueryClient();
-  const { data: settings = [] } = useQuery<{ key: string; value: string }[]>({
-    queryKey: ["settings"],
-    queryFn: () => api.get("/settings").then(r => r.data),
-  });
-
-  const [maxAge, setMaxAge] = useState("30");
-
-  useEffect(() => {
-    const s = settings.find(s => s.key === "max_job_age_days");
-    if (s) setMaxAge(s.value);
-  }, [settings]);
-
-  const save = useMutation({
-    mutationFn: () => api.put("/settings/max_job_age_days", { value: maxAge }).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
-  });
-
-  return (
-    <div className="card p-5 space-y-4">
-      <h2 className="text-sm font-medium text-slate-200">Scrape Preferences</h2>
-
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-300">Max job age</p>
-          <p className="text-xs text-slate-500 mt-0.5">Listings older than this are skipped before any LLM call</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <input
-            type="number"
-            min={1}
-            max={90}
-            value={maxAge}
-            onChange={e => setMaxAge(e.target.value)}
-            className="input w-16 text-center"
-          />
-          <span className="text-sm text-slate-500">days</span>
-        </div>
-      </div>
-
-      <div className="pt-1 border-t border-slate-800 flex justify-end">
-        <button
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          className="btn-primary"
-        >
-          {save.isPending ? "Saving…" : "Save"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -220,10 +162,9 @@ export default function ProfilePage() {
           />
         </section>
 
-        {/* Right — upload + settings */}
-        <div className="space-y-4">
+        {/* Right — upload */}
+        <div>
           <ResumeUpload onGenerated={handleGenerated} />
-          <ScrapeSettings />
         </div>
       </div>
     </div>

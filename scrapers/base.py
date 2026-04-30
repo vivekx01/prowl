@@ -19,8 +19,8 @@ class JobListing:
 class BaseScraper(ABC):
     @abstractmethod
     async def fetch_listings(self, company_row: dict) -> list[JobListing]:
-        """Fetch all job listings for a company. Returns lightweight listing objects (no JD yet)."""
+        """Fetch all job listings for a company. Returns lightweight listing objects."""
 
     @abstractmethod
-    async def fetch_description(self, listing: JobListing) -> str:
-        """Fetch full job description for a single listing."""
+    async def fetch_detail(self, listing: JobListing) -> dict:
+        """Fetch full job detail. Returns dict with 'description' (str) and 'start_date' (str | None)."""

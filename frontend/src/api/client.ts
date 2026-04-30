@@ -1,7 +1,35 @@
 import axios from "axios";
 
 const api = axios.create({ baseURL: "/api" });
+
+// Attach stored token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("prowl_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Redirect to login on 401
+api.interceptors.response.use(
+  (r) => r,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem("prowl_token");
+      localStorage.removeItem("prowl_user");
+      window.location.href = "/login";
+    }
+    return Promise.reject(err);
+  }
+);
+
 export default api;
+
+export interface User {
+  user_id: number;
+  email: string;
+  name: string;
+  is_admin: boolean;
+}
 
 export interface Company {
   id: number;
@@ -10,6 +38,20 @@ export interface Company {
   active: boolean;
   config: Record<string, string>;
   created_at: string;
+  listing_count: number;
+}
+
+export interface JobListing {
+  id: number;
+  company_id: number;
+  company_name: string;
+  title: string;
+  location: string;
+  posted_on: string;
+  posted_date: string | null;
+  url: string;
+  department: string;
+  first_seen_at: string;
 }
 
 export interface Score {
@@ -21,6 +63,7 @@ export interface Score {
 
 export interface AppRecord {
   id: number;
+  listing_id: number;
   status: string;
   applied_at: string | null;
   notes: string;
@@ -66,4 +109,42 @@ export interface ScrapeRun {
   input_tokens: number;
   output_tokens: number;
   celery_task_id: string | null;
+}
+
+export interface ScoreRun {
+  id: number;
+  user_id: number;
+  celery_task_id: string | null;
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  companies_total: number;
+  companies_done: number;
+  apply_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  current_company_id: number | null;
+  company_results: CompanyResult[];
+}
+
+export interface CompanyResult {
+  id: number;
+  name: string;
+  platform: string;
+  matches: number;
+}
+
+export interface AdminScoreRun {
+  id: number;
+  user_id: number;
+  user_email: string | null;
+  status: string;
+  days_back: number | null;
+  started_at: string | null;
+  finished_at: string | null;
+  companies_total: number;
+  companies_done: number;
+  apply_count: number;
+  input_tokens: number;
+  output_tokens: number;
 }

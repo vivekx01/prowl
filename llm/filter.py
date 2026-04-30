@@ -20,7 +20,15 @@ def _parse_json(raw: str) -> dict:
     raw = raw.strip()
     raw = re.sub(r'^```(?:json)?\s*', '', raw)
     raw = re.sub(r'\s*```$', '', raw)
-    return json.loads(raw.strip())
+    raw = raw.strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # Strip all bare control characters and retry. Safe because JSON
+        # structural whitespace is optional, and control chars inside string
+        # values must be escaped by the LLM anyway — \r→\n is still invalid.
+        cleaned = re.sub(r'[\x00-\x1f]', '', raw)
+        return json.loads(cleaned)
 
 
 def _make_llm(model: str) -> ChatOpenRouter:
@@ -186,4 +194,5 @@ class JobFilter:
             return _parse_json(raw)
         except Exception as e:
             print(f"  [llm] stage2 parse error for {listing.title}: {e}")
-            return {"score": 0.0, "verdict": "skip", "reason": "parse error"}
+            print(f"  [llm] raw response was: {raw[:300]!r}")
+            return None

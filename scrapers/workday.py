@@ -98,26 +98,26 @@ class WorkdayScraper(BaseScraper):
 
         return listings
 
-    async def fetch_description(self, listing: JobListing) -> str:
-        """Fetch the full JD via Workday's CXS jobs detail API.
-
-        Detail URL = jobs_endpoint + externalPath
-        e.g. https://acme.wd5.myworkdayjobs.com/wday/cxs/acme/Jobs/jobs/job/Title_JR123
+    async def fetch_detail(self, listing: JobListing) -> dict:
+        """Fetch full job detail via Workday's CXS API.
+        Returns description text and startDate (ISO string or None).
         """
         external_path = listing.raw.get("externalPath", "")
         jd_base = listing.raw.get("_jd_base", "")
         if not external_path or not jd_base:
-            return ""
+            return {"description": "", "start_date": None}
 
         detail_api = jd_base + external_path
-        referer = listing.url  # careers page URL — required by Workday to avoid 403
         try:
-            data = await self._get(detail_api, referer=referer)
+            data = await self._get(detail_api, referer=listing.url)
             jd = data.get("jobPostingInfo", {})
-            return _extract_jd_text(jd)
+            return {
+                "description": _extract_jd_text(jd),
+                "start_date": jd.get("startDate"),
+            }
         except Exception as e:
-            print(f"  [workday] description fetch error for {listing.title}: {e}")
-            return ""
+            print(f"  [workday] detail fetch error for {listing.title}: {e}")
+            return {"description": "", "start_date": None}
 
 
 def _extract_base_domain(endpoint: str) -> str:

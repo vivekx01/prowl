@@ -203,9 +203,9 @@ function RunRow({
               {run.companies_done}/{run.companies_total} companies
             </span>
           )}
-          {run.apply_count > 0 && (
-            <span className="text-xs text-emerald-400 font-medium">
-              {run.apply_count} matches
+          {run.new_listings > 0 && (
+            <span className="text-xs text-violet-400 font-medium">
+              {run.new_listings} new listings
             </span>
           )}
           {(run.status === "failed" || run.status === "cancelled") && (
@@ -238,7 +238,6 @@ function RunRow({
 export default function ScrapePage() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [maxAge, setMaxAge] = useState("");
   const [activeRunId, setActiveRunId] = useState<number>(0);
 
   const { data: companies = [] } = useQuery<Company[]>({
@@ -246,23 +245,11 @@ export default function ScrapePage() {
     queryFn: () => api.get("/companies").then(r => r.data),
   });
 
-  const { data: settings = [] } = useQuery<{ key: string; value: string }[]>({
-    queryKey: ["settings"],
-    queryFn: () => api.get("/settings").then(r => r.data),
-  });
-
   const { data: runs = [], refetch: refetchRuns } = useQuery<ScrapeRun[]>({
     queryKey: ["runs"],
     queryFn: () => api.get("/runs").then(r => r.data),
     refetchInterval: 5000,
   });
-
-  useEffect(() => {
-    if (maxAge === "") {
-      const s = settings.find(s => s.key === "max_job_age_days");
-      if (s) setMaxAge(s.value);
-    }
-  }, [settings]);
 
   // Auto-select the latest running run
   useEffect(() => {
@@ -275,10 +262,6 @@ export default function ScrapePage() {
 
   const startRun = useMutation({
     mutationFn: async () => {
-      if (maxAge) {
-        const s = settings.find(s => s.key === "max_job_age_days");
-        if (maxAge !== s?.value) await api.put("/settings/max_job_age_days", { value: maxAge });
-      }
       const company_ids = selected.size > 0 ? Array.from(selected) : null;
       return api.post("/scraper/run", { company_ids }).then(r => r.data);
     },
@@ -319,22 +302,6 @@ export default function ScrapePage() {
           <CompanySelector companies={activeOnly} selected={selected} onChange={setSelected} />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-widest">Max job age (days)</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="number"
-              min={1}
-              max={90}
-              value={maxAge}
-              onChange={e => setMaxAge(e.target.value)}
-              className="input w-24"
-            />
-            <span className="text-xs text-slate-600">
-              Listings older than this are skipped before any LLM call
-            </span>
-          </div>
-        </div>
 
         <div className="flex items-center justify-between pt-1 border-t border-slate-800">
           <span className="text-xs text-slate-600">

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import api, { type Job } from "../api/client";
 import { IconExternal } from "../components/Icons";
+import { useAuth } from "../context/AuthContext";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -283,6 +284,7 @@ function FilterGroup({
 // ---------------------------------------------------------------------------
 
 export default function JobsPage() {
+  const { isAdmin } = useAuth();
   const [filter, setFilter] = useState<FilterKey>("fresh");
   const [scoreMin, setScoreMin] = useState(7);
 
@@ -316,11 +318,11 @@ export default function JobsPage() {
             )}
           </p>
         </div>
-        <Link to="/scrape" className="btn-primary flex items-center gap-2 text-sm">
+        <Link to={isAdmin ? "/scrape" : "/scan"} className="btn-primary flex items-center gap-2 text-sm">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728M8.464 15.536a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M12 12h.01" />
           </svg>
-          Run Scrape
+          {isAdmin ? "Run Scrape" : "Find Openings"}
         </Link>
       </div>
 

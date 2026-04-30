@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
+from api.deps import get_admin_user
 from db.database import get_db
-from db.models import ScrapeRun, ScrapeRunLog
+from db.models import ScrapeRun, ScrapeRunLog, User
 
 router = APIRouter(prefix="/runs", tags=["runs"])
 
 
 @router.get("")
-def list_runs(limit: int = Query(20), db: Session = Depends(get_db)):
+def list_runs(
+    limit: int = Query(20),
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
     runs = (
         db.query(ScrapeRun)
         .order_by(ScrapeRun.id.desc())
@@ -19,7 +24,11 @@ def list_runs(limit: int = Query(20), db: Session = Depends(get_db)):
 
 
 @router.get("/{run_id}")
-def get_run(run_id: int, db: Session = Depends(get_db)):
+def get_run(
+    run_id: int,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
     run = db.get(ScrapeRun, run_id)
     if not run:
         from fastapi import HTTPException
@@ -30,7 +39,8 @@ def get_run(run_id: int, db: Session = Depends(get_db)):
 @router.get("/{run_id}/logs")
 def get_run_logs(
     run_id: int,
-    after_id: int = Query(0, description="Return only logs with id > after_id"),
+    after_id: int = Query(0),
+    _: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
     q = (

@@ -3,17 +3,22 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from api.deps import get_current_user
 from db.database import get_db
-from db.models import Application, Company, JobListing, JobScore, ScrapeRun
+from db.models import Application, Company, JobListing, JobScore, ScrapeRun, User
 from llm.insights import InsightsChat
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
 
-def _summary(db: Session) -> dict:
+def _summary(db: Session, user_id: int) -> dict:
     total = db.query(func.count(JobListing.id)).scalar() or 0
 
-    scores = db.query(JobScore.score, JobScore.verdict).all()
+    scores = (
+        db.query(JobScore.score, JobScore.verdict)
+        .filter(JobScore.user_id == user_id)
+        .all()
+    )
     apply_count = sum(1 for s in scores if s.verdict == "apply")
     skip_count = sum(1 for s in scores if s.verdict == "skip")
 
@@ -32,6 +37,7 @@ def _summary(db: Session) -> dict:
 
     app_rows = (
         db.query(Application.status, func.count(Application.id))
+        .filter(Application.user_id == user_id)
         .group_by(Application.status)
         .all()
     )
@@ -49,7 +55,7 @@ def _summary(db: Session) -> dict:
         db.query(Company.name, func.count(JobScore.id).label("matches"))
         .join(JobListing, JobListing.company_id == Company.id)
         .join(JobScore, JobScore.listing_id == JobListing.id)
-        .filter(JobScore.verdict == "apply")
+        .filter(JobScore.verdict == "apply", JobScore.user_id == user_id)
         .group_by(Company.id)
         .all()
     )
@@ -89,11 +95,18 @@ class ChatRequest(BaseModel):
 
 
 @router.get("/summary")
-def get_summary(db: Session = Depends(get_db)):
-    return _summary(db)
+def get_summary(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return _summary(db, user.id)
 
 
 @router.post("/chat")
-async def chat(body: ChatRequest, db: Session = Depends(get_db)):
-    data = _summary(db)
+async def chat(
+    body: ChatRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    data = _summary(db, user.id)
     return await InsightsChat().ask(body.message, data, body.history)
