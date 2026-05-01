@@ -39,13 +39,21 @@ def _make_llm(model: str) -> ChatOpenRouter:
     )
 
 
-def _extract_usage(response) -> tuple[int, int]:
-    """Return (input_tokens, output_tokens) from a LangChain response."""
+def _extract_usage(response) -> tuple[int, int, int]:
+    """Return (input_tokens, output_tokens, cached_tokens) from a LangChain response."""
     meta = getattr(response, "usage_metadata", None)
     if meta:
-        return meta.get("input_tokens", 0), meta.get("output_tokens", 0)
+        inp = meta.get("input_tokens", 0)
+        out = meta.get("output_tokens", 0)
+        # OpenRouter reports cached hits under several possible keys
+        cached = (
+            meta.get("cache_read_input_tokens", 0)
+            or meta.get("cached_tokens", 0)
+            or (meta.get("input_token_details") or {}).get("cache_read", 0)
+        )
+        return inp, out, cached
     token_usage = getattr(response, "response_metadata", {}).get("token_usage", {})
-    return token_usage.get("prompt_tokens", 0), token_usage.get("completion_tokens", 0)
+    return token_usage.get("prompt_tokens", 0), token_usage.get("completion_tokens", 0), 0
 
 
 STAGE1_SYSTEM = """\
@@ -127,18 +135,60 @@ STAGE2_USER_TMPL = """\
 {description}
 """
 
+COMPRESS_PROMPT = """\
+Extract exactly three things from this candidate profile and respond in one line.
+
+Format: "<N> YOE · <stack> · <role type>"
+Example: "4 YOE · Python, FastAPI, React, PostgreSQL · mid-level backend/full-stack"
+
+Rules:
+- YOE: total years of professional experience as a number
+- stack: comma-separated technologies/languages, max 8, most important first
+- role type: 3-5 words describing the target role (seniority + domain)
+
+Profile:
+{profile}"""
+
 
 class JobFilter:
     def __init__(self, profile: str):
         self.profile = profile
+        self._compact_profile = profile  # replaced by warm_up(); full profile is safe fallback
         self._filter_llm = _make_llm(config.FILTER_MODEL)
         self._score_llm = _make_llm(config.SCORE_MODEL)
-        self._input_tokens = 0
-        self._output_tokens = 0
+        self._filter_input_tokens = 0
+        self._filter_output_tokens = 0
+        self._score_input_tokens = 0
+        self._score_output_tokens = 0
+        self._cached_tokens = 0  # cached input tokens from Stage 2 (Gemini implicit caching)
 
     @property
     def token_usage(self) -> tuple[int, int]:
-        return self._input_tokens, self._output_tokens
+        return (
+            self._filter_input_tokens + self._score_input_tokens,
+            self._filter_output_tokens + self._score_output_tokens,
+        )
+
+    @property
+    def detailed_token_usage(self) -> dict:
+        return {
+            "filter_input":  self._filter_input_tokens,
+            "filter_output": self._filter_output_tokens,
+            "score_input":   self._score_input_tokens,
+            "score_output":  self._score_output_tokens,
+            "cached":        self._cached_tokens,
+        }
+
+    async def warm_up(self) -> None:
+        """Compress the full profile to a one-line summary used by stage1_filter.
+        Call once per run before the company loop."""
+        response = await self._filter_llm.ainvoke([
+            HumanMessage(content=COMPRESS_PROMPT.format(profile=self.profile))
+        ])
+        inp, out, _ = _extract_usage(response)
+        self._filter_input_tokens += inp
+        self._filter_output_tokens += out
+        self._compact_profile = response.content.strip()
 
     async def stage1_filter(self, listings: list[JobListing]) -> list[JobListing]:
         """Return subset of listings that pass the bulk title-level filter."""
@@ -153,15 +203,15 @@ class JobFilter:
         messages = [
             SystemMessage(content=STAGE1_SYSTEM),
             HumanMessage(content=STAGE1_USER_TMPL.format(
-                profile=self.profile,
+                profile=self._compact_profile,
                 job_list=numbered,
             )),
         ]
 
         response = await self._filter_llm.ainvoke(messages)
-        inp, out = _extract_usage(response)
-        self._input_tokens += inp
-        self._output_tokens += out
+        inp, out, _ = _extract_usage(response)
+        self._filter_input_tokens += inp
+        self._filter_output_tokens += out
         raw = response.content.strip()
 
         try:
@@ -185,9 +235,10 @@ class JobFilter:
         ]
 
         response = await self._score_llm.ainvoke(messages)
-        inp, out = _extract_usage(response)
-        self._input_tokens += inp
-        self._output_tokens += out
+        inp, out, cached = _extract_usage(response)
+        self._score_input_tokens += inp
+        self._score_output_tokens += out
+        self._cached_tokens += cached
         raw = response.content.strip()
 
         try:

@@ -8,10 +8,29 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+import config
 from db.database import SessionLocal
 from db.models import Company, JobListing, JobScore, Profile, ScoreRun, ScoreRunLog
 from llm.filter import JobFilter
 from scrapers.base import JobListing as ScraperListing
+
+
+def _compute_cost(usage: dict) -> float:
+    """Calculate run cost in USD from per-stage token counts."""
+    filter_cost = (
+        usage["filter_input"] * config.FILTER_MODEL_PRICE_IN
+        + usage["filter_output"] * config.FILTER_MODEL_PRICE_OUT
+    ) / 1_000_000
+
+    cached = usage["cached"]
+    score_in = usage["score_input"]
+    score_cost = (
+        cached * config.SCORE_MODEL_PRICE_IN * config.SCORE_MODEL_CACHE_DISCOUNT
+        + max(score_in - cached, 0) * config.SCORE_MODEL_PRICE_IN
+        + usage["score_output"] * config.SCORE_MODEL_PRICE_OUT
+    ) / 1_000_000
+
+    return filter_cost + score_cost
 
 
 async def run_score(run_id: int, user_id: int) -> None:
@@ -46,6 +65,8 @@ async def _score(db: Session, run_id: int, user_id: int) -> None:
     _log(db, run_id, f"Starting score run: {len(companies)} companies, days_back={run.days_back or 'all'}")
 
     job_filter = JobFilter(profile.content)
+    await job_filter.warm_up()
+    _log(db, run_id, f"  compact profile: {job_filter._compact_profile}")
     results: list[dict] = []
     total_apply = 0
 
@@ -163,11 +184,19 @@ async def _score(db: Session, run_id: int, user_id: int) -> None:
             run.apply_count = total_apply
             db.commit()
 
+        usage = job_filter.detailed_token_usage
         inp, out = job_filter.token_usage
         run.input_tokens = inp
         run.output_tokens = out
+        run.filter_input_tokens = usage["filter_input"]
+        run.filter_output_tokens = usage["filter_output"]
+        run.score_input_tokens = usage["score_input"]
+        run.score_output_tokens = usage["score_output"]
+        run.cached_tokens = usage["cached"]
+        run.cost_usd = _compute_cost(usage)
         run.status = "completed"
-        _log(db, run_id, f"Done — {total_apply} total matches · {inp:,} in / {out:,} out tokens")
+        cost_inr = run.cost_usd * 84
+        _log(db, run_id, f"Done — {total_apply} total matches · {inp:,} in / {out:,} out tokens · ₹{cost_inr:.2f}")
 
     except Exception as e:
         print(f"[score run {run_id}] fatal: {e}")

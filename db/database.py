@@ -91,6 +91,19 @@ def _migrate():
         if "days_back" not in cols("score_runs"):
             conn.execute(text("ALTER TABLE score_runs ADD COLUMN days_back INTEGER"))
 
+        # ── score_runs: add per-stage token counts + cost ─────────────────────
+        sr_cols = cols("score_runs")
+        for col_def in [
+            ("filter_input_tokens",  "INTEGER DEFAULT 0"),
+            ("filter_output_tokens", "INTEGER DEFAULT 0"),
+            ("score_input_tokens",   "INTEGER DEFAULT 0"),
+            ("score_output_tokens",  "INTEGER DEFAULT 0"),
+            ("cached_tokens",        "INTEGER DEFAULT 0"),
+            ("cost_usd",             "REAL DEFAULT 0.0"),
+        ]:
+            if col_def[0] not in sr_cols:
+                conn.execute(text(f"ALTER TABLE score_runs ADD COLUMN {col_def[0]} {col_def[1]}"))
+
         # ── profile: assign orphaned rows to the first admin user ────────────
         conn.execute(text("""
             UPDATE profile SET user_id = (

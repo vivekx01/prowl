@@ -181,6 +181,7 @@ def _serialize_score_run(r: ScoreRun) -> dict:
         "apply_count": r.apply_count,
         "input_tokens": r.input_tokens,
         "output_tokens": r.output_tokens,
+        "cost_usd": r.cost_usd or 0.0,
     }
 
 

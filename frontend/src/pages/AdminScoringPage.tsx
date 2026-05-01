@@ -155,6 +155,11 @@ function RunCard({ r, onStop }: { r: AdminScoreRun; onStop: () => void }) {
                   {(r.input_tokens / 1000).toFixed(1)}k / {(r.output_tokens / 1000).toFixed(1)}k tok
                 </span>
               )}
+              {r.cost_usd > 0 && (
+                <span className="text-amber-400/80 font-medium">
+                  ₹{(r.cost_usd * 84).toFixed(2)}
+                </span>
+              )}
             </div>
           </div>
 
