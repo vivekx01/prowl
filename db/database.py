@@ -3,9 +3,12 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 import config
 
+_is_sqlite = config.DATABASE_URL.startswith("sqlite")
+
 engine = create_engine(
-    f"sqlite:///{config.DB_PATH}",
-    connect_args={"check_same_thread": False},
+    config.DATABASE_URL,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    pool_pre_ping=not _is_sqlite,
 )
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -15,6 +18,8 @@ class Base(DeclarativeBase):
 
 
 def _migrate():
+    if not _is_sqlite:
+        return  # fresh Postgres schema fully handled by create_all()
     with engine.begin() as conn:
         def cols(table):
             return {r[1] for r in conn.execute(text(f"PRAGMA table_info({table})"))}

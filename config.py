@@ -10,6 +10,8 @@ PROFILE_PATH = BASE_DIR / "profiles" / "my_profile.md"
 RESULTS_DIR = BASE_DIR / "data" / "results"
 DB_PATH = BASE_DIR / "data" / "jobs.db"
 
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "prowl-secret-key-change-in-production")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
