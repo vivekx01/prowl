@@ -17,9 +17,23 @@ class Base(DeclarativeBase):
     pass
 
 
+def _migrate_postgres():
+    """Add columns that create_all() won't add to existing Postgres tables."""
+    with engine.begin() as conn:
+        def has_col(table, col):
+            return conn.execute(text(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_name=:t AND column_name=:c"
+            ), {"t": table, "c": col}).first() is not None
+
+        if not has_col("score_runs", "company_ids"):
+            conn.execute(text("ALTER TABLE score_runs ADD COLUMN company_ids JSONB"))
+
+
 def _migrate():
     if not _is_sqlite:
-        return  # fresh Postgres schema fully handled by create_all()
+        _migrate_postgres()
+        return
     with engine.begin() as conn:
         def cols(table):
             return {r[1] for r in conn.execute(text(f"PRAGMA table_info({table})"))}
@@ -117,6 +131,10 @@ def _migrate():
             WHERE user_id IS NULL
             AND EXISTS (SELECT 1 FROM users WHERE is_admin = 1)
         """))
+
+        # ── score_runs: add company_ids ───────────────────────────────────────
+        if "company_ids" not in cols("score_runs"):
+            conn.execute(text("ALTER TABLE score_runs ADD COLUMN company_ids JSON"))
 
         # ── score_run_logs: create if missing ─────────────────────────────────
         existing_tables = {r[0] for r in conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))}

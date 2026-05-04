@@ -152,12 +152,15 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
     run.companies_done = len(completed_ids)
     db.commit()
 
+    total_companies = run.companies_total
+    log(f"Starting scrape run: {total_companies} companies")
+
     purged = cleanup_old_listings(db)
     if purged:
         log(f"Purged {purged} listings older than {config.LISTING_RETENTION_DAYS} days")
 
-
     total_new = run.new_listings
+    company_index = len(completed_ids)
 
     try:
         from collections import defaultdict
@@ -174,7 +177,8 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                         log("Run cancelled — stopping", "warning")
                         return
 
-                    log(f"\nFetching: {company.name} [{platform}]")
+                    company_index += 1
+                    log(f"\n[{company_index}/{total_companies}] {company.name} [{platform}]")
                     company_row = {"name": company.name, **(company.config or {})}
 
                     try:
@@ -184,6 +188,7 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                         _mark_company_done(db, run, company.id, completed_ids)
                         continue
 
+                    fetched_count = len(raw_listings)
                     new_count = 0
                     seen_in_batch: set[str] = set()
                     for listing in raw_listings:
@@ -228,13 +233,13 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                             total_new += 1
                         except IntegrityError:
                             db.rollback()
-                    log(f"  {new_count} new listings stored")
+                    log(f"  {fetched_count} fetched · {new_count} new")
                     _mark_company_done(db, run, company.id, completed_ids)
 
         run.status = "completed"
 
     except Exception as e:
-        log(f"[fatal] {e}", "error")
+        log(f"Fatal error: {e}", "error")
         run.status = "failed"
 
     finally:
@@ -242,11 +247,7 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
         run.new_listings = total_new
         db.commit()
 
-        summary = (
-            f"\n{'='*50}\n"
-            f"New listings stored: {total_new}"
-        )
-        log(summary)
+        log(f"\n{'='*40}\nDone — {total_new} new listings stored")
 
 
 def _mark_company_done(

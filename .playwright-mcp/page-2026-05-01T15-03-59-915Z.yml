@@ -1,0 +1,38 @@
+- generic [ref=e4]:
+  - link "Skip to main content" [ref=e5] [cursor=pointer]:
+    - /url: ""
+  - banner [ref=e8]:
+    - generic [ref=e10]:
+      - link "careers home" [ref=e13] [cursor=pointer]:
+        - /url: https://careers.gehealthcare.com/global/en
+        - img "careers home" [ref=e14]
+      - heading "GE HealthCare Careers" [level=1] [ref=e16]
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - button "English" [ref=e21] [cursor=pointer]:
+            - generic [ref=e25]: English
+          - button "Sign In" [ref=e27] [cursor=pointer]:
+            - generic [ref=e32]: Sign In
+        - navigation [ref=e33]:
+          - button "GE HealthCare Careers" [ref=e34] [cursor=pointer]
+  - generic [ref=e41]:
+    - generic [ref=e42]: Follow Us
+    - list [ref=e43]:
+      - listitem [ref=e44] [cursor=pointer]:
+        - link "YouTube" [ref=e45]:
+          - /url: https://www.youtube.com/user/gehealthcare
+      - listitem [ref=e51] [cursor=pointer]:
+        - link "X" [ref=e52]:
+          - /url: https://twitter.com/gehealthcare
+      - listitem [ref=e56] [cursor=pointer]:
+        - link "LinkedIn" [ref=e57]:
+          - /url: https://www.linkedin.com/company/gehealthcare/life/everymomentmatters/
+      - listitem [ref=e61] [cursor=pointer]:
+        - link "Glassdoor" [ref=e62]:
+          - /url: https://www.glassdoor.co.uk/Overview/Working-at-GE-Healthcare-EI_IE4112.11,24.htm
+      - listitem [ref=e67] [cursor=pointer]:
+        - link "Facebook" [ref=e68]:
+          - /url: https://www.facebook.com/GEHealthcare/
+    - generic [ref=e72]:
+      - img [ref=e76]
+      - generic [ref=e96]: © 2026 Workday, Inc. All rights reserved.

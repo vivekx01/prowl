@@ -31,6 +31,7 @@ class UserPatch(BaseModel):
 
 class ScoreTrigger(BaseModel):
     days_back: Optional[int] = None
+    company_ids: Optional[list[int]] = None
 
 
 def _serialize(u: User) -> dict:
@@ -97,13 +98,13 @@ def delete_user(
 # Score management
 # ---------------------------------------------------------------------------
 
-def _start_score_run(db, user_id: int, days_back: int | None) -> ScoreRun:
+def _start_score_run(db, user_id: int, days_back: int | None, company_ids: list[int] | None = None) -> ScoreRun:
     from tasks import score_task
-    run = ScoreRun(user_id=user_id, status="pending", days_back=days_back)
+    run = ScoreRun(user_id=user_id, status="pending", days_back=days_back, company_ids=company_ids or None)
     db.add(run)
     db.commit()
     db.refresh(run)
-    task = score_task.delay(run.id, user_id)
+    task = score_task.delay(run.id, user_id, company_ids)
     run.celery_task_id = task.id
     db.commit()
     return run
@@ -124,7 +125,7 @@ def score_single_user(
     active = db.query(ScoreRun).filter(ScoreRun.user_id == user_id, ScoreRun.status.in_(["pending", "running"])).first()
     if active:
         raise HTTPException(409, f"Score run #{active.id} already in progress for this user")
-    run = _start_score_run(db, user_id, body.days_back)
+    run = _start_score_run(db, user_id, body.days_back, body.company_ids)
     return {"user_id": user_id, "run_id": run.id}
 
 
@@ -182,6 +183,7 @@ def _serialize_score_run(r: ScoreRun) -> dict:
         "input_tokens": r.input_tokens,
         "output_tokens": r.output_tokens,
         "cost_usd": r.cost_usd or 0.0,
+        "company_ids": r.company_ids,
     }
 
 

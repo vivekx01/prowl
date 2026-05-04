@@ -9,6 +9,6 @@ def scrape_task(self, run_id: int, company_ids: list[int] | None):
 
 
 @celery_app.task(bind=True, name="tasks.score", max_retries=0)
-def score_task(self, run_id: int, user_id: int):
+def score_task(self, run_id: int, user_id: int, company_ids: list[int] | None = None):
     from scorer import run_score
-    asyncio.run(run_score(run_id=run_id, user_id=user_id))
+    asyncio.run(run_score(run_id=run_id, user_id=user_id, company_ids=company_ids))

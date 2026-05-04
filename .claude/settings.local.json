@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:openrouter.ai)"
+      "WebFetch(domain:openrouter.ai)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\vivek\\\\OneDrive\\\\Desktop\\\\AI projects\\\\Job Scrapper\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\vivek\\\\OneDrive\\\\Desktop\\\\AI projects\\\\Job Scrapper\" -Force -Recurse -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 50)"
     ]
   }
 }

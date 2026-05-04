@@ -33,10 +33,10 @@ def _compute_cost(usage: dict) -> float:
     return filter_cost + score_cost
 
 
-async def run_score(run_id: int, user_id: int) -> None:
+async def run_score(run_id: int, user_id: int, company_ids: list[int] | None = None) -> None:
     db = SessionLocal()
     try:
-        await _score(db, run_id, user_id)
+        await _score(db, run_id, user_id, company_ids)
     finally:
         db.close()
 
@@ -46,7 +46,7 @@ def _log(db: Session, run_id: int, message: str, level: str = "info") -> None:
     db.commit()
 
 
-async def _score(db: Session, run_id: int, user_id: int) -> None:
+async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] | None = None) -> None:
     run = db.get(ScoreRun, run_id)
     if not run:
         return
@@ -58,7 +58,10 @@ async def _score(db: Session, run_id: int, user_id: int) -> None:
         _log(db, run_id, "No profile found for user", "error")
         return
 
-    companies = db.query(Company).filter_by(active=True).all()
+    q = db.query(Company).filter_by(active=True)
+    if company_ids:
+        q = q.filter(Company.id.in_(company_ids))
+    companies = q.all()
     run.status = "running"
     run.companies_total = len(companies)
     db.commit()

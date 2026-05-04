@@ -1,0 +1,116 @@
+- generic [ref=e4]:
+  - link "Skip to main content" [ref=e5] [cursor=pointer]:
+    - /url: ""
+  - banner [ref=e8]:
+    - generic [ref=e10]:
+      - link "careers home" [ref=e13] [cursor=pointer]:
+        - /url: https://careers.gehealthcare.com/global/en
+        - img "careers home" [ref=e14]
+      - heading "GE HealthCare Careers" [level=1] [ref=e16]
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - button "English" [ref=e21] [cursor=pointer]:
+            - generic [ref=e25]: English
+          - button "Sign In" [ref=e27] [cursor=pointer]:
+            - generic [ref=e32]: Sign In
+        - navigation [ref=e33]:
+          - button "GE HealthCare Careers" [ref=e34] [cursor=pointer]
+  - main [ref=e97]:
+    - generic [ref=e98]:
+      - generic [ref=e99]:
+        - link "Back to Job Posting" [ref=e101] [cursor=pointer]:
+          - generic [ref=e105]: Back to Job Posting
+        - heading "Full Stack AI Engineer - eCommerce" [level=2] [ref=e106]
+      - generic "Application Progress" [ref=e107]:
+        - list [ref=e108]:
+          - listitem [ref=e109]:
+            - generic: current step 1 of 7
+            - generic [ref=e115]: Create Account/Sign In
+          - listitem [ref=e116]:
+            - generic: step 2 of 7
+            - generic [ref=e122]: Autofill with Resume
+          - listitem [ref=e123]:
+            - generic: step 3 of 7
+            - generic [ref=e129]: My Information
+          - listitem [ref=e130]:
+            - generic: step 4 of 7
+            - generic [ref=e136]: My Experience
+          - listitem [ref=e137]:
+            - generic: step 5 of 7
+            - generic [ref=e143]: Application Questions
+          - listitem [ref=e144]:
+            - generic: step 6 of 7
+            - generic [ref=e150]: Voluntary Disclosures
+          - listitem [ref=e151]:
+            - generic: step 7 of 7
+            - generic [ref=e157]: Review
+      - generic [ref=e160]:
+        - generic [ref=e163]:
+          - heading "Create Account" [level=3] [ref=e164]
+          - generic [ref=e166]:
+            - paragraph [ref=e167]: Please click Create Account below to track your application, or, revisit later using the link in your “Thank you for applying email”.
+            - paragraph [ref=e168]
+            - paragraph [ref=e169]: You must use the same email address used during the application process to view your status.
+          - generic [ref=e172]:
+            - paragraph [ref=e173]: "Password Requirements:"
+            - list [ref=e174]:
+              - listitem [ref=e175]: A special character
+              - listitem [ref=e176]: An alphabetic character
+              - listitem [ref=e177]: A minimum of 8 characters
+              - listitem [ref=e178]: A lowercase character
+              - listitem [ref=e179]: A numeric character
+              - listitem [ref=e180]: An uppercase character
+          - generic [ref=e181]:
+            - generic [ref=e182]:
+              - generic [ref=e184]: Email Address*
+              - textbox "Email Address" [ref=e187]: vivek77158@gmail.com
+            - generic [ref=e189]:
+              - generic [ref=e191]: Password*
+              - textbox "Password" [ref=e194]: Mumbai@2025
+            - generic [ref=e195]:
+              - generic [ref=e197]: Verify New Password*
+              - textbox "Verify New Password" [ref=e200]: Mumbai@2025
+            - generic [ref=e203]:
+              - paragraph [ref=e206]:
+                - text: As part of our talent acquisition process, we may process data from incomplete job applications within our systems. The purpose of data processing is to increase our talent pool by capturing and retaining data from incomplete applications, improve candidate engagement by using insights from these applications to re-engage candidates and encourage them to complete their applications, and enhance recruitment strategies by analyzing incomplete application data to identify trends and improve job postings and application processes. For more information, please visit
+                - link [ref=e207] [cursor=pointer]:
+                  - /url: https://www.gehealthcare.com/about/privacy/candidate-privacy-notice?showPopup=false
+                  - text: GE HealthCare Candidate Privacy notice
+                - text: .
+              - button "Read More" [ref=e210] [cursor=pointer]:
+                - generic [ref=e211]: Read More
+            - generic [ref=e219]:
+              - checkbox "By creating an account you are agreeing to our Privacy Notice." [checked] [active] [ref=e221] [cursor=pointer]
+              - generic [ref=e222] [cursor=pointer]: By creating an account you are agreeing to our Privacy Notice.
+            - generic [ref=e227]:
+              - button "Create Account" [ref=e228] [cursor=pointer]
+              - button [ref=e229] [cursor=pointer]: Create Account
+          - generic [ref=e230]:
+            - text: Already have an account?
+            - button "Sign In" [ref=e231] [cursor=pointer]
+          - button "Forgot your password?" [ref=e233] [cursor=pointer]
+        - generic:
+          - generic:
+            - generic [ref=e234]: Enter website. This input is for robots only, do not enter if you're human.
+            - textbox "Enter website. This input is for robots only, do not enter if you're human." [ref=e235]
+  - generic [ref=e41]:
+    - generic [ref=e42]: Follow Us
+    - list [ref=e43]:
+      - listitem [ref=e44] [cursor=pointer]:
+        - link "YouTube" [ref=e45]:
+          - /url: https://www.youtube.com/user/gehealthcare
+      - listitem [ref=e51] [cursor=pointer]:
+        - link "X" [ref=e52]:
+          - /url: https://twitter.com/gehealthcare
+      - listitem [ref=e56] [cursor=pointer]:
+        - link "LinkedIn" [ref=e57]:
+          - /url: https://www.linkedin.com/company/gehealthcare/life/everymomentmatters/
+      - listitem [ref=e61] [cursor=pointer]:
+        - link "Glassdoor" [ref=e62]:
+          - /url: https://www.glassdoor.co.uk/Overview/Working-at-GE-Healthcare-EI_IE4112.11,24.htm
+      - listitem [ref=e67] [cursor=pointer]:
+        - link "Facebook" [ref=e68]:
+          - /url: https://www.facebook.com/GEHealthcare/
+    - generic [ref=e72]:
+      - img [ref=e76]
+      - generic [ref=e96]: © 2026 Workday, Inc. All rights reserved.

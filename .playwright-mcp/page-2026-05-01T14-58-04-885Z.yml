@@ -1,0 +1,188 @@
+- generic [ref=e1]:
+  - generic [ref=e6]:
+    - link [ref=e389] [cursor=pointer]:
+      - /url: ""
+      - text: Skip to main content
+    - banner [ref=e28]:
+      - generic [ref=e30]:
+        - link [ref=e390] [cursor=pointer]:
+          - /url: https://careers.gehealthcare.com/global/en
+          - img [ref=e391]
+        - heading [level=1] [ref=e392]: GE HealthCare Careers
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - button [ref=e393] [cursor=pointer]:
+              - generic [ref=e42]: English
+            - button [ref=e394] [cursor=pointer]:
+              - generic [ref=e49]: Sign In
+          - navigation [ref=e50]:
+            - button [ref=e395] [cursor=pointer]: GE HealthCare Careers
+    - generic [ref=e54]:
+      - generic [ref=e115]:
+        - alert [ref=e116]: Full Stack AI Engineer - eCommerce page is loaded
+        - generic [ref=e117]:
+          - generic [ref=e119]:
+            - heading [level=2] [ref=e396]: Full Stack AI Engineer - eCommerce
+            - button [ref=e397] [cursor=pointer]: Apply
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e135]:
+                - term [ref=e136]: locations
+                - definition [ref=e137]: Bengaluru
+              - generic [ref=e138]:
+                - generic [ref=e147]:
+                  - term [ref=e148]: time type
+                  - definition [ref=e149]: Full time
+                - generic [ref=e158]:
+                  - term [ref=e159]: posted on
+                  - definition [ref=e160]: Posted 3 Days Ago
+                - generic [ref=e169]:
+                  - term [ref=e170]: job requisition id
+                  - definition [ref=e171]: R4040354
+            - generic [ref=e173]:
+              - heading [level=1] [ref=e398]:
+                - generic [ref=e176]: Job Description Summary
+              - text: Responsible for designing, building, delivering and maintaining software applications & services. Working in the areas of machine, cloud, platform and/or application. Responsible for software lifecycle including activities such as requirement analysis, documentation/procedures and implementation.
+              - paragraph [ref=e177]
+              - paragraph [ref=e178]
+              - paragraph [ref=e179]
+              - paragraph [ref=e180]
+              - heading [level=1] [ref=e399]: Job Description
+              - paragraph [ref=e182]:
+                - generic [ref=e183]: Overview We’re looking for a hands‑on Senior Full Stack Developer with strong proficiency in React and Node.js to build high‑performance web and mobile applications. You’ll work on scalable platforms, integrating modern frontend frameworks with robust backend services. Exposure to AI models and implementation of AI‑based solutions will be a valuable addition, as we continue to explore intelligent features across our products.
+              - paragraph [ref=e184]:
+                - generic [ref=e185]: "Job Description: Roles and Responsibilities"
+              - list [ref=e186]:
+                - listitem [ref=e187]: Work in a collaborative environment, with architect and technical leaders to understand the product requirements and vision
+                - listitem [ref=e188]: Seek to understand problems thoroughly before implementing solutions; ask questions to clarify requirements when ambiguities are present
+                - listitem [ref=e189]: Write code that meets standards and delivers desired functionality using the technology selected for the project
+                - listitem [ref=e190]: Execute in a fast‑paced delivery mode and focus on delivering tasks to meet the product release goal
+                - listitem [ref=e191]: Understand performance parameters and assess application performance
+                - listitem [ref=e192]: Demonstrate understanding of Agile software development lifecycle and distinguish the core inputs and outputs in each cycle
+                - listitem [ref=e193]: Seek and provide feedback on design and development; articulate the need for scalability and emphasize improving quality through testing
+                - listitem [ref=e194]: Adapt to new environments and changing requirements; pivot quickly as needed and seek information from other sources when coached
+                - listitem [ref=e195]: Overall, be a strong problem solver with a go‑getter attitude to overcome technical challenges
+              - paragraph [ref=e196]:
+                - generic [ref=e197]: Education Qualifications
+              - list [ref=e198]:
+                - listitem [ref=e199]: Bachelor’s degree in computer science/IT or equivalent combination of education/experience
+              - paragraph [ref=e200]:
+                - generic [ref=e201]: What We Are Looking For
+              - list [ref=e202]:
+                - listitem [ref=e203]: 5+ years of experience in Full Stack Web development, with a proven track record of delivering high‑quality software
+                - listitem [ref=e204]:
+                  - generic [ref=e205]: Strong expertise in JavaScript/TypeScript libraries for Web development like React, Redux/RTK
+                - listitem [ref=e206]: Build and maintain backend services using Node.js (Express/Hapi), integrating with PostgreSQL, Redis, and DynamoDB
+                - listitem [ref=e207]: Collaborate with product teams to deliver features across healthcare, ecommerce, and enterprise domains
+                - listitem [ref=e208]: Optimize performance, security, and maintainability of applications
+                - listitem [ref=e209]: Good to have design experience with Micro frontend‑based architecture
+                - listitem [ref=e210]: Deep understanding of HTML5, CSS3, SCSS and modern web development practices
+                - listitem [ref=e211]: Proficiency with styling libraries like TailwindCSS, PostCSS, MaterialUI, etc.
+                - listitem [ref=e212]: Experience with testing methodologies like TDD/BDD and tools such as Karma, Jasmine, Jest, Chai, Mocha, Puppeteer, Playwright
+                - listitem [ref=e213]: Strong understanding of Object‑Oriented Design (OOD), Programming (OOP), and UML
+                - listitem [ref=e214]: Experience with RESTful APIs and general data management flows
+                - listitem [ref=e215]: Experience with cloud platforms (Azure preferred) and containerization
+                - listitem [ref=e216]: Familiarity with CI/CD pipelines, version control systems like Git, and agile methodologies
+                - listitem [ref=e217]: Familiarity with industry software development practices, tools, and environments including configuration management systems, defect tracking tools, and debuggers
+                - listitem [ref=e218]: Exposure to AI models and practical implementation of AI‑based solutions within applications
+              - paragraph [ref=e219]:
+                - generic [ref=e220]: Nice to Have
+              - list [ref=e221]:
+                - listitem [ref=e222]: Experience with deployable containers using Docker & Kubernetes
+                - listitem [ref=e223]: Experience with cloud computing environments such as AWS/Azure, and microservices
+                - listitem [ref=e224]: Experience with creating CI/CD pipelines using tools like Jenkins
+                - listitem [ref=e225]: Background in healthcare technology or working with large, distributed systems
+                - listitem [ref=e226]: Prior experience in Serverless architecture, GraphQL
+                - listitem [ref=e227]: Proficiency in additional programming languages or frameworks beneficial to frontend or full stack development
+              - paragraph [ref=e228]
+              - paragraph [ref=e229]
+              - paragraph [ref=e230]
+              - heading [level=1] [ref=e400]:
+                - generic [ref=e233]: Additional Information
+              - generic [ref=e240]:
+                - paragraph [ref=e241]: "Relocation Assistance Provided: No"
+                - paragraph [ref=e242]
+                - paragraph [ref=e243]
+                - paragraph [ref=e244]
+                - paragraph [ref=e245]
+                - paragraph [ref=e246]
+        - generic [ref=e248]:
+          - heading [level=3] [ref=e401]: Similar Jobs (5)
+          - generic [ref=e250]:
+            - generic [ref=e251]:
+              - link [ref=e402] [cursor=pointer]:
+                - /url: /en-US/GEHC_ExternalSite/en-US/GEHC_ExternalSite/job/Bengaluru/Staff-Software-Engineer_R4039475-1
+                - heading [level=4] [ref=e403]: Staff Software Engineer
+              - generic [ref=e264]:
+                - term [ref=e265]: locations
+                - definition [ref=e266]: Bengaluru
+              - generic [ref=e275]:
+                - term [ref=e276]: time type
+                - definition [ref=e277]: Full time
+              - generic [ref=e286]:
+                - term [ref=e287]: posted on
+                - definition [ref=e288]: Posted 17 Days Ago
+            - generic [ref=e289]:
+              - link [ref=e404] [cursor=pointer]:
+                - /url: /en-US/GEHC_ExternalSite/en-US/GEHC_ExternalSite/job/Bengaluru/Staff-Software-Engineer---Mobile-App-Development_R4040116-1
+                - heading [level=4] [ref=e405]: Staff Software Engineer - Mobile App Development
+              - generic [ref=e302]:
+                - term [ref=e303]: locations
+                - definition [ref=e304]: Bengaluru
+              - generic [ref=e313]:
+                - term [ref=e314]: time type
+                - definition [ref=e315]: Full time
+              - generic [ref=e324]:
+                - term [ref=e325]: posted on
+                - definition [ref=e326]: Posted 8 Days Ago
+            - generic [ref=e327]:
+              - link [ref=e406] [cursor=pointer]:
+                - /url: /en-US/GEHC_ExternalSite/en-US/GEHC_ExternalSite/job/Bengaluru/Senior-Software-Engineer_R4039476-1
+                - heading [level=4] [ref=e407]: Senior Software Engineer
+              - generic [ref=e340]:
+                - term [ref=e341]: locations
+                - definition [ref=e342]: Bengaluru
+              - generic [ref=e351]:
+                - term [ref=e352]: time type
+                - definition [ref=e353]: Full time
+              - generic [ref=e362]:
+                - term [ref=e363]: posted on
+                - definition [ref=e364]: Posted 17 Days Ago
+          - button [ref=e408] [cursor=pointer]:
+            - generic [ref=e371]: View All 5 Jobs
+      - generic [ref=e374]:
+        - heading [level=3] [ref=e409]: About Us
+        - img [ref=e410]
+        - generic [ref=e378]:
+          - paragraph [ref=e381]: At GE HealthCare, we see possibilities through innovation. We’re partnering with our customers to fulfill healthcare’s greatest potential through groundbreaking medical technology, intelligent devices, and care solutions. Better tools enabling better patient care. Together, we are not only building a healthier future but living our purpose to create a world where healthcare has no limits.
+          - button [ref=e411] [cursor=pointer]:
+            - generic [ref=e385]: Read More
+    - generic [ref=e55]:
+      - generic [ref=e56]: Follow Us
+      - list [ref=e57]:
+        - listitem [ref=e58] [cursor=pointer]:
+          - link [ref=e412]:
+            - /url: https://www.youtube.com/user/gehealthcare
+        - listitem [ref=e65] [cursor=pointer]:
+          - link [ref=e413]:
+            - /url: https://twitter.com/gehealthcare
+        - listitem [ref=e70] [cursor=pointer]:
+          - link [ref=e414]:
+            - /url: https://www.linkedin.com/company/gehealthcare/life/everymomentmatters/
+        - listitem [ref=e75] [cursor=pointer]:
+          - link [ref=e415]:
+            - /url: https://www.glassdoor.co.uk/Overview/Working-at-GE-Healthcare-EI_IE4112.11,24.htm
+        - listitem [ref=e81] [cursor=pointer]:
+          - link [ref=e416]:
+            - /url: https://www.facebook.com/GEHealthcare/
+      - generic [ref=e86]:
+        - img [ref=e90]
+        - generic [ref=e110]: © 2026 Workday, Inc. All rights reserved.
+  - dialog "Start Your Application" [ref=e420]:
+    - button "Close" [active] [ref=e422] [cursor=pointer]
+    - generic [ref=e428]:
+      - heading "Start Your Application" [level=2] [ref=e429]
+      - heading "Full Stack AI Engineer - eCommerce" [level=3] [ref=e430]
+      - button "Autofill with Resume" [ref=e434] [cursor=pointer]
+      - button "Apply Manually" [ref=e438] [cursor=pointer]
+      - button "Use My Last Application" [ref=e443] [cursor=pointer]

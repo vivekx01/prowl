@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api, { type Company, type ScrapeRun, type RunLog } from "../api/client";
+import api, { type Company, type ScrapeRun } from "../api/client";
 import { IconChevronDown } from "../components/Icons";
 
 // ---------------------------------------------------------------------------
@@ -105,48 +105,96 @@ function CompanySelector({
 // Log panel
 // ---------------------------------------------------------------------------
 
-const LOG_STYLES: Record<string, string> = {
-  success: "text-emerald-400",
-  error:   "text-red-400",
-  warning: "text-amber-400",
-  info:    "text-slate-400",
+const LOG_LEVEL: Record<string, { badge: string; text: string }> = {
+  error:   { badge: "text-red-400 bg-red-400/10 border-red-400/20",             text: "text-red-300" },
+  warning: { badge: "text-amber-400 bg-amber-400/10 border-amber-400/20",       text: "text-amber-200" },
+  success: { badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", text: "text-slate-200" },
+  info:    { badge: "text-slate-400 bg-slate-700/40 border-slate-600/30",        text: "text-slate-400" },
 };
 
-function LogPanel({ runId, running }: { runId: number; running: boolean }) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+interface LogEntry { id: number; timestamp: string; level: string; message: string; }
 
-  const { data: logs = [] } = useQuery<RunLog[]>({
-    queryKey: ["run-logs", runId],
-    queryFn: () => api.get(`/runs/${runId}/logs`).then(r => r.data),
-    refetchInterval: running ? 1500 : false,
-    staleTime: 0,
-    enabled: runId > 0,
-  });
+function LogPanel({ runId, running }: { runId: number; running: boolean }) {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastIdRef = useRef(0);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs.length]);
+    setLogs([]);
+    lastIdRef.current = 0;
+  }, [runId]);
 
-  if (!logs.length && !running) return null;
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await api.get(`/runs/${runId}/logs`, {
+          params: { after_id: lastIdRef.current },
+        });
+        if (cancelled || !res.data.length) return;
+        lastIdRef.current = res.data[res.data.length - 1].id;
+        setLogs(prev => [...prev, ...res.data]);
+      } catch {}
+    };
+    poll();
+    if (!running) return;
+    const t = setInterval(poll, 2000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [runId, running]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [logs]);
 
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-900/80">
-        <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Logs</span>
-        {running && (
-          <span className="flex items-center gap-1.5 text-xs text-violet-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            Running
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {running ? (
+            <span className="flex items-center gap-1.5 text-xs text-violet-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+              Live
+            </span>
+          ) : (
+            <span className="text-xs text-slate-500">Logs</span>
+          )}
+        </div>
+        <span className="text-xs text-slate-600">{logs.length} entr{logs.length === 1 ? "y" : "ies"}</span>
       </div>
-      <div className="p-4 max-h-80 overflow-y-auto font-mono text-xs leading-5 space-y-0.5">
-        {logs.map(l => (
-          <div key={l.id} className={LOG_STYLES[l.level] ?? LOG_STYLES.info}>
-            {l.message || " "}
+
+      <div ref={scrollRef} className="max-h-80 overflow-y-auto bg-slate-900/60">
+        {logs.length === 0 ? (
+          <div className="flex items-center justify-center py-10">
+            {running
+              ? <span className="text-xs text-slate-600 animate-pulse">Waiting for logs…</span>
+              : <span className="text-xs text-slate-700">No logs recorded</span>}
           </div>
-        ))}
-        <div ref={bottomRef} />
+        ) : (
+          <div className="divide-y divide-slate-800/50">
+            {logs.map(l => {
+              const style = LOG_LEVEL[l.level] ?? LOG_LEVEL.info;
+              return (
+                <div
+                  key={l.id}
+                  className="flex items-start gap-3 px-4 py-2.5 hover:bg-slate-800/30 transition-colors"
+                >
+                  <span className="text-[10px] text-slate-600 tabular-nums shrink-0 pt-0.5 leading-4 min-w-[64px]">
+                    {new Date(l.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit", minute: "2-digit", second: "2-digit",
+                    })}
+                  </span>
+                  <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border leading-3 pt-[3px] min-w-[44px] text-center ${style.badge}`}>
+                    {l.level}
+                  </span>
+                  <span className={`text-xs leading-snug break-words flex-1 min-w-0 font-mono ${style.text}`}>
+                    {l.message || " "}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -358,7 +406,12 @@ export default function ScrapePage() {
           )}
 
           {activeRunId > 0 && (
-            <LogPanel key={activeRunId} runId={activeRunId} running={activeRun?.status === "running"} />
+            <div className="space-y-2">
+              <h2 className="text-xs font-medium text-slate-500 uppercase tracking-widest px-1">
+                Run logs
+              </h2>
+              <LogPanel key={activeRunId} runId={activeRunId} running={activeRun?.status === "running"} />
+            </div>
           )}
         </div>
       )}

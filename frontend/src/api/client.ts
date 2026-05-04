@@ -140,6 +140,7 @@ export interface AdminScoreRun {
   user_email: string | null;
   status: string;
   days_back: number | null;
+  company_ids: number[] | null;
   started_at: string | null;
   finished_at: string | null;
   companies_total: number;

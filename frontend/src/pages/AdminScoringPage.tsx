@@ -1,7 +1,106 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api, { type AdminScoreRun } from "../api/client";
+import api, { type Company, type AdminScoreRun } from "../api/client";
+import { IconChevronDown } from "../components/Icons";
+
+// ---------------------------------------------------------------------------
+// Company multi-select
+// ---------------------------------------------------------------------------
+
+function CompanySelector({
+  companies,
+  selected,
+  onChange,
+}: {
+  companies: Company[];
+  selected: Set<number>;
+  onChange: (s: Set<number>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
+  }, []);
+
+  const filtered = companies.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function toggle(id: number) {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.size === companies.length) onChange(new Set());
+    else onChange(next);
+  }
+
+  const label =
+    selected.size === 0
+      ? `All companies (${companies.length})`
+      : `${selected.size} of ${companies.length} selected`;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full input flex items-center justify-between gap-2 text-left"
+      >
+        <span className={selected.size === 0 ? "text-slate-400" : "text-slate-100"}>
+          {label}
+        </span>
+        <IconChevronDown className={`w-4 h-4 text-slate-500 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full card shadow-2xl overflow-hidden">
+          <div className="p-2 border-b border-slate-800">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="input text-xs py-1.5"
+            />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            <label className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/60 cursor-pointer border-b border-slate-800/40">
+              <input
+                type="checkbox"
+                checked={selected.size === 0}
+                onChange={() => onChange(new Set())}
+                className="accent-violet-500 w-4 h-4"
+              />
+              <span className="text-sm text-slate-200 font-medium">All companies</span>
+            </label>
+            {filtered.map(c => (
+              <label key={c.id} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-800/60 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected.has(c.id)}
+                  onChange={() => toggle(c.id)}
+                  className="accent-violet-500 w-4 h-4 shrink-0"
+                />
+                <span className="text-sm text-slate-300 truncate">{c.name}</span>
+                <span className="ml-auto text-xs text-slate-600 shrink-0 capitalize">{c.platform}</span>
+              </label>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-4 py-3 text-sm text-slate-500">No companies match</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -227,6 +326,13 @@ export default function AdminScoringPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [daysBack, setDaysBack] = useState("1");
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<number>>(new Set());
+
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["companies"],
+    queryFn: () => api.get("/companies").then(r => r.data),
+  });
+  const activeCompanies = companies.filter(c => c.active);
 
   // Fetch all users to get name/email for the header
   const { data: users = [] } = useQuery<UserInfo[]>({
@@ -252,6 +358,7 @@ export default function AdminScoringPage() {
     mutationFn: () =>
       api.post(`/admin/score/run/${userId}`, {
         days_back: daysBack ? parseInt(daysBack) : null,
+        company_ids: selectedCompanies.size > 0 ? Array.from(selectedCompanies) : null,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-score-runs"] }),
   });
@@ -285,7 +392,14 @@ export default function AdminScoringPage() {
               {userRuns.length > 0 && ` · ${userRuns.length} run${userRuns.length !== 1 ? "s" : ""}`}
             </p>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="w-48">
+              <CompanySelector
+                companies={activeCompanies}
+                selected={selectedCompanies}
+                onChange={setSelectedCompanies}
+              />
+            </div>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"

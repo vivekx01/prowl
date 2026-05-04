@@ -180,6 +180,7 @@ class ScoreRun(Base):
     current_company_id = Column(Integer, nullable=True)
     company_results = Column(JSON, default=list)
     days_back = Column(Integer, nullable=True)
+    company_ids = Column(JSON, nullable=True)
 
     user = relationship("User", back_populates="score_runs")
     logs = relationship("ScoreRunLog", back_populates="run", order_by="ScoreRunLog.id")
@@ -195,3 +196,91 @@ class ScoreRunLog(Base):
     message = Column(Text, nullable=False)
 
     run = relationship("ScoreRun", back_populates="logs")
+
+
+# ---------------------------------------------------------------------------
+# Pounce — application bot
+# ---------------------------------------------------------------------------
+
+class PounceRun(Base):
+    __tablename__ = "pounce_runs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    listing_id = Column(Integer, ForeignKey("job_listings.id"), nullable=True)
+    status = Column(String, default="pending")  # pending/running/completed/failed/dry_run_completed
+    dry_run = Column(Boolean, default=False)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    finished_at = Column(DateTime, nullable=True)
+    agent_turns = Column(Integer, default=0)
+    step_results = Column(JSON, default=list)
+    error_message = Column(Text, nullable=True)
+
+    logs = relationship("PounceRunLog", back_populates="run", order_by="PounceRunLog.id")
+
+
+class PounceRunLog(Base):
+    __tablename__ = "pounce_run_logs"
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("pounce_runs.id"), nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    level = Column(String, default="info")
+    message = Column(Text, nullable=False)
+
+    run = relationship("PounceRun", back_populates="logs")
+
+
+class AnswerMemory(Base):
+    __tablename__ = "pounce_answer_memory"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    question_text = Column(Text, nullable=False)
+    normalized_key = Column(String, nullable=False)
+    answer = Column(Text, nullable=False)
+    field_type = Column(String, nullable=True)       # text/radio/dropdown/textarea
+    options = Column(JSON, default=list)
+    source = Column(String, default="llm")           # "user" | "llm"
+    confidence = Column(Float, default=0.7)          # user=1.0, llm=0.7
+    company_domain = Column(String, nullable=True)   # "google.wd5.myworkdayjobs.com" | null
+    portal_key = Column(String, nullable=True)       # "workday" | null (global)
+    use_count = Column(Integer, default=1)
+    last_used = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "normalized_key", "company_domain", "portal_key",
+                         name="uq_answer_memory"),
+    )
+
+
+class LearnedFlow(Base):
+    __tablename__ = "pounce_learned_flows"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    company_domain = Column(String, nullable=False)  # primary lookup key
+    portal_key = Column(String, nullable=True)       # "workday" | null (metadata only)
+    success_count = Column(Integer, default=0)
+    last_success = Column(DateTime, nullable=True)
+
+    steps = relationship("LearnedStep", back_populates="flow",
+                         order_by="LearnedStep.step_order", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "company_domain", name="uq_learned_flow"),
+    )
+
+
+class LearnedStep(Base):
+    __tablename__ = "pounce_learned_steps"
+
+    id = Column(Integer, primary_key=True)
+    flow_id = Column(Integer, ForeignKey("pounce_learned_flows.id"), nullable=False)
+    step_order = Column(Integer, nullable=False)
+    step_name = Column(String, nullable=False)
+    page_indicator = Column(String, nullable=True)   # aria-label/text to identify page
+    tool_calls = Column(JSON, default=list)          # [{tool, args}] replay hints
+    next_button = Column(String, nullable=True)      # aria-label of continue button
+
+    flow = relationship("LearnedFlow", back_populates="steps")

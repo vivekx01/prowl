@@ -7,7 +7,6 @@ Two-stage LLM filtering:
 """
 
 import json
-import re
 from langchain_openrouter import ChatOpenRouter
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -16,19 +15,16 @@ from scrapers.base import JobListing
 
 
 def _parse_json(raw: str) -> dict:
-    """Parse JSON that may be wrapped in markdown code fences."""
-    raw = raw.strip()
-    raw = re.sub(r'^```(?:json)?\s*', '', raw)
-    raw = re.sub(r'\s*```$', '', raw)
-    raw = raw.strip()
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        # Strip all bare control characters and retry. Safe because JSON
-        # structural whitespace is optional, and control chars inside string
-        # values must be escaped by the LLM anyway — \r→\n is still invalid.
-        cleaned = re.sub(r'[\x00-\x1f]', '', raw)
-        return json.loads(cleaned)
+    """Extract and parse the first JSON object from a model response.
+
+    Handles code fences, preamble text, and trailing commentary by slicing
+    from the first '{' to the last '}' before attempting to parse.
+    """
+    start = raw.find('{')
+    end = raw.rfind('}')
+    if start == -1 or end <= start:
+        raise ValueError(f"no JSON object found in response: {raw[:200]!r}")
+    return json.loads(raw[start:end + 1])
 
 
 def _make_llm(model: str) -> ChatOpenRouter:
@@ -180,15 +176,8 @@ class JobFilter:
         }
 
     async def warm_up(self) -> None:
-        """Compress the full profile to a one-line summary used by stage1_filter.
-        Call once per run before the company loop."""
-        response = await self._filter_llm.ainvoke([
-            HumanMessage(content=COMPRESS_PROMPT.format(profile=self.profile))
-        ])
-        inp, out, _ = _extract_usage(response)
-        self._filter_input_tokens += inp
-        self._filter_output_tokens += out
-        self._compact_profile = response.content.strip()
+        """Use full profile directly for stage1 filtering — compact profile disabled."""
+        self._compact_profile = self.profile
 
     async def stage1_filter(self, listings: list[JobListing]) -> list[JobListing]:
         """Return subset of listings that pass the bulk title-level filter."""
