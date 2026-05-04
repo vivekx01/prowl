@@ -42,6 +42,9 @@ logs/
 Thumbs.db
 desktop.ini
 
+# Playwright MCP runtime output (page snapshots, console logs)
+.playwright-mcp/
+
 # IDE / editors
 .vscode/
 .idea/
