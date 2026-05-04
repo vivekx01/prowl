@@ -1,19 +1,36 @@
-# The Prowl
+<div align="center">
 
-An AI-powered job search automation platform. Scrapes jobs from Workday portals, filters them against your profile using a two-stage LLM pipeline, tracks your applications, and optionally auto-fills application forms for you.
+# 🐾 The Prowl
+
+### Stop scrolling job boards. Start hunting smarter.
+
+**The Prowl** is a self-hosted job search engine that scrapes hundreds of company career portals, scores every listing against your resume using a two-stage LLM pipeline, and lets an AI agent apply on your behalf — all from a single dashboard.
+
+[![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Celery](https://img.shields.io/badge/Celery-5-37814A?style=flat&logo=celery&logoColor=white)](https://docs.celeryq.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
 
 ---
 
-## What It Does
+## ✨ What It Does
 
-1. **Scrape** — Pulls job listings from Workday-based career portals across hundreds of companies
-2. **Score** — Runs your resume through a two-stage LLM filter to score each job (0–100) and return a verdict: `apply`, `maybe`, or `skip`
-3. **Track** — Manage your application pipeline (saved → applied → interviewing → offer/rejected)
-4. **Pounce** — An AI agent that navigates Workday portals and auto-fills job application forms using learned flows and cached answers
+| | Feature | Description |
+|---|---|---|
+| 🕷️ | **Scrape** | Pulls fresh job listings from company career portals across multiple platforms |
+| 🧠 | **Score** | Two-stage LLM pipeline scores each job against your resume and returns `apply`, `maybe`, or `skip` |
+| 📋 | **Track** | Full application pipeline — saved → applied → interviewing → offer/rejected |
+| 🐾 | **Pounce** | AI agent that reads, fills, and submits job application forms for you — learning as it goes |
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -29,7 +46,7 @@ An AI-powered job search automation platform. Scrapes jobs from Workday portals,
 
 ---
 
-## Prerequisites
+## 📋 Prerequisites
 
 - Python 3.13+
 - Node.js 18+
@@ -40,7 +57,7 @@ An AI-powered job search automation platform. Scrapes jobs from Workday portals,
 
 ---
 
-## Setup
+## 🚀 Setup
 
 ### 1. Clone & install dependencies
 
@@ -109,7 +126,7 @@ Open **http://localhost:5173** in your browser.
 
 ---
 
-## First Run
+## ⚡ First Run
 
 1. **Register** — The first registered user is automatically made admin
 2. **Upload your profile** — Go to Profile and paste or upload your resume (markdown or PDF)
@@ -120,7 +137,7 @@ Open **http://localhost:5173** in your browser.
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 Job Scrapper/
@@ -135,8 +152,8 @@ Job Scrapper/
 │   └── models.py           # All SQLAlchemy models
 │
 ├── scrapers/
-│   ├── base.py             # BaseScraper ABC
-│   └── workday.py          # Workday-specific scraper
+│   ├── base.py             # BaseScraper ABC (extend to add new platforms)
+│   └── workday.py          # Workday implementation
 │
 ├── llm/
 │   ├── filter.py           # Two-stage LLM filtering pipeline
@@ -166,7 +183,7 @@ Job Scrapper/
 
 ---
 
-## LLM Scoring Pipeline
+## 🧠 LLM Scoring Pipeline
 
 Jobs go through two stages to keep costs low:
 
@@ -183,7 +200,7 @@ Token costs are tracked per run and displayed in the UI (USD and INR).
 
 ---
 
-## API Reference
+## 🔌 API Reference
 
 ### Auth
 | Method | Endpoint | Description |
@@ -232,21 +249,21 @@ Full API docs available at `http://localhost:8000/docs` when the backend is runn
 
 ---
 
-## Pounce — Auto Application Bot
+## 🐾 Pounce — Auto Application Bot
 
-Pounce is an AI agent that uses Playwright to fill out Workday application forms. It:
+Pounce is an AI agent that uses Playwright to navigate career portals and fill out application forms. It:
 
-- Uses Claude (via OpenRouter) to reason about form fields and choose answers
-- Caches answers by question text so it gets faster over time
-- Stores learned step-by-step flows per company for replay
-- Supports dry-run mode to preview before submitting
-- Includes human-in-the-loop checkpoints for sensitive fields
+- Uses Claude (via OpenRouter) to reason about form fields and choose the right answers
+- Caches answers by normalized question text — gets faster with every application
+- Stores learned step-by-step flows per company for one-click replay
+- Supports dry-run mode to preview before submitting anything real
+- Includes human-in-the-loop checkpoints for sensitive or ambiguous fields
 
 > Pounce is experimental. Always review before submitting real applications.
 
 ---
 
-## CLI Usage
+## 💻 CLI Usage
 
 For running scrapes without the web UI:
 
@@ -258,12 +275,14 @@ This launches an interactive CLI (via questionary) to select companies and trigg
 
 ---
 
-## Adding Companies
+## 🏢 Adding Companies
 
-Companies are seeded from `companies/workday_companies.csv`. The CSV contains company name, Workday endpoint URL, and request payload config. To add a new company, add a row to the CSV and re-seed via the admin panel or CLI.
+Companies are seeded from `companies/workday_companies.csv`. Each row contains the company name, career portal URL, and any scraper-specific config. To add a new company, add a row to the CSV and re-seed via the admin panel or CLI.
+
+The scraper layer is built on a `BaseScraper` abstraction — adding support for new career portal platforms (Greenhouse, Lever, Ashby, etc.) is a matter of implementing the interface in `scrapers/`.
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 PRs welcome. The project uses `uv` for Python dependency management — run `uv sync` after pulling to stay up to date.

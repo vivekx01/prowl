@@ -156,7 +156,7 @@ class JobFilter:
         self._filter_output_tokens = 0
         self._score_input_tokens = 0
         self._score_output_tokens = 0
-        self._cached_tokens = 0  # cached input tokens from Stage 2 (Gemini implicit caching)
+        self._cached_tokens = 0  # populated only when the model reports cache hits
 
     @property
     def token_usage(self) -> tuple[int, int]:
