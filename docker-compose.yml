@@ -31,7 +31,7 @@ services:
 
   worker:
     build: .
-    command: celery -A celery_app worker --loglevel=info --concurrency=2
+    command: celery -A celery_app worker --loglevel=info --concurrency=2 -I tasks
     restart: unless-stopped
     env_file: .env.production
     depends_on:
