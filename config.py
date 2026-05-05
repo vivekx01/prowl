@@ -15,6 +15,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "prowl-secret-key-change-in-production")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 FILTER_MODEL = os.getenv("FILTER_MODEL", "google/gemini-2.5-flash-lite")
 SCORE_MODEL  = os.getenv("SCORE_MODEL",  "google/gemini-2.5-flash")

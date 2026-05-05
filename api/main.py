@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import config
 from db.database import init_db, SessionLocal
 from runner import seed_companies_from_csv, seed_defaults
 from api.routers import companies, jobs, applications, profile, scraper, runs, insights
@@ -27,7 +28,7 @@ app = FastAPI(title="Job Scraper API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=config.ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

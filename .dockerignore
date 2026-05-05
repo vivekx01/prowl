@@ -1,0 +1,17 @@
+.venv/
+**/__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+data/
+.git/
+.github/
+.claude/
+.playwright-mcp/
+.idea/
+.vscode/
+frontend/
+*.sqlite
+*.db
+profiles/
