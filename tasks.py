@@ -1,4 +1,9 @@
 import asyncio
+import json
+from datetime import datetime, timedelta, timezone
+
+from croniter import croniter
+
 from celery_app import celery_app
 from runner import run_scrape
 
@@ -12,3 +17,79 @@ def scrape_task(self, run_id: int, company_ids: list[int] | None):
 def score_task(self, run_id: int, user_id: int, company_ids: list[int] | None = None):
     from scorer import run_score
     asyncio.run(run_score(run_id=run_id, user_id=user_id, company_ids=company_ids))
+
+
+@celery_app.task(name="tasks.check_schedule", max_retries=0)
+def check_schedule_task():
+    """Runs every 15 minutes. Triggers scrape/score if current UTC time matches a configured slot."""
+    from db.database import SessionLocal
+    from db.models import Profile, ScoreRun, Setting, ScrapeRun, User
+
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    current_minutes = now.hour * 60 + now.minute
+
+    def _cron_fires_now(expr: str) -> bool:
+        """True if the cron expression fired at the current UTC minute."""
+        if not expr:
+            return False
+        try:
+            prev = now - timedelta(seconds=1)
+            return croniter(expr, prev).get_next(datetime).replace(tzinfo=None) == now.replace(tzinfo=None)
+        except Exception:
+            return False
+
+    def _slot_fires_now(times: list[str]) -> bool:
+        """True if current UTC time is within 2 minutes of any HH:MM slot."""
+        for t in times:
+            h, m = map(int, t.split(":"))
+            diff = (current_minutes - (h * 60 + m)) % (24 * 60)
+            if diff < 2:
+                return True
+        return False
+
+    db = SessionLocal()
+    try:
+        def _get_setting(key: str, user_id=None) -> str | None:
+            row = db.query(Setting).filter(Setting.user_id == user_id, Setting.key == key).first()
+            return row.value if row else None
+
+        scrape_cron = _get_setting("scrape_schedule")
+
+        if _cron_fires_now(scrape_cron):
+            active = db.query(ScrapeRun).filter(ScrapeRun.status.in_(["pending", "running"])).first()
+            if not active:
+                run = ScrapeRun(status="pending", company_ids=None, completed_company_ids="[]")
+                db.add(run)
+                db.commit()
+                db.refresh(run)
+                task = scrape_task.delay(run.id, None)
+                run.celery_task_id = task.id
+                db.commit()
+
+        # Per-user score schedules (HH:MM UTC slots)
+        users = (
+            db.query(User)
+            .join(Profile, Profile.user_id == User.id)
+            .filter(User.is_active == True)
+            .all()
+        )
+        for user in users:
+            raw = _get_setting("score_schedule", user_id=user.id)
+            user_score_times = json.loads(raw) if raw else []
+            if not user_score_times or not _slot_fires_now(user_score_times):
+                continue
+            active = db.query(ScoreRun).filter(
+                ScoreRun.user_id == user.id,
+                ScoreRun.status.in_(["pending", "running"]),
+            ).first()
+            if active:
+                continue
+            run = ScoreRun(user_id=user.id, status="pending", days_back=None)
+            db.add(run)
+            db.commit()
+            db.refresh(run)
+            task = score_task.delay(run.id, user.id, None)
+            run.celery_task_id = task.id
+            db.commit()
+    finally:
+        db.close()

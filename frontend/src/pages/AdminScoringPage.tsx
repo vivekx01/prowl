@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api, { type Company, type AdminScoreRun } from "../api/client";
 import { IconChevronDown } from "../components/Icons";
+import { ISTTimePicker, utcToIst } from "../components/ISTTimePicker";
 
 // ---------------------------------------------------------------------------
 // Company multi-select
@@ -316,6 +317,81 @@ function RunCard({ r, onStop }: { r: AdminScoreRun; onStop: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-user score schedule
+// ---------------------------------------------------------------------------
+
+function UserScoreSchedule({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery<{ score_times: string[] }>({
+    queryKey: ["user-score-schedule", userId],
+    queryFn: () => api.get(`/admin/users/${userId}/score-schedule`).then((r) => r.data),
+  });
+
+  const save = useMutation({
+    mutationFn: (score_times: string[]) =>
+      api.put(`/admin/users/${userId}/score-schedule`, { score_times }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["user-score-schedule", userId] }),
+  });
+
+  const times = data?.score_times ?? [];
+
+  function addTime(utcTime: string) {
+    const next = [...new Set([...times, utcTime])].sort();
+    save.mutate(next);
+  }
+
+  function removeTime(t: string) {
+    save.mutate(times.filter((x) => x !== t));
+  }
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4 space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-200">Score Schedule</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Scoring runs automatically for this user at these times.
+          </p>
+        </div>
+        {save.isPending && <span className="text-xs text-slate-500 shrink-0">Saving…</span>}
+      </div>
+
+      {isLoading ? (
+        <p className="text-xs text-slate-600">Loading…</p>
+      ) : (
+        <div className="space-y-3">
+          {/* Time chips */}
+          <div className="flex flex-wrap gap-2 min-h-[28px]">
+            {times.length === 0 ? (
+              <span className="text-xs text-slate-600 italic">No times set — runs manually only</span>
+            ) : (
+              times.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-medium rounded-lg px-3 py-1.5"
+                >
+                  {utcToIst(t)}
+                  <button
+                    onClick={() => removeTime(t)}
+                    className="text-slate-500 hover:text-red-400 transition-colors leading-none"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+
+          {/* Picker */}
+          <ISTTimePicker onAdd={addTime} disabled={save.isPending} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -420,6 +496,9 @@ export default function AdminScoringPage() {
           </div>
         </div>
       </div>
+
+      {/* Score schedule */}
+      {userId && <UserScoreSchedule userId={userId} />}
 
       {/* Runs */}
       {isLoading ? (

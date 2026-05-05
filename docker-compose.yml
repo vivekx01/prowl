@@ -44,6 +44,19 @@ services:
       redis:
         condition: service_started
 
+  beat:
+    build: .
+    command: celery -A celery_app beat --loglevel=info
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      PYTHONPATH: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   nginx:
     build:
       context: frontend

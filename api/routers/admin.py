@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,7 +10,7 @@ from passlib.context import CryptContext
 
 from api.deps import get_admin_user
 from db.database import get_db
-from db.models import Profile, ScoreRun, ScoreRunLog, User
+from db.models import Profile, ScoreRun, ScoreRunLog, Setting, User
 
 _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -259,3 +260,107 @@ def stop_score_run(
     run.finished_at = datetime.utcnow()
     db.commit()
     return {"run_id": run_id, "status": "cancelled"}
+
+
+# ---------------------------------------------------------------------------
+# Schedule
+# ---------------------------------------------------------------------------
+
+class ScheduleOut(BaseModel):
+    scrape_cron: str
+
+
+class ScheduleUpdate(BaseModel):
+    scrape_cron: str
+
+
+class UserScheduleOut(BaseModel):
+    score_times: list[str]
+
+
+class UserScheduleUpdate(BaseModel):
+    score_times: list[str]
+
+
+def _validate_times(times: list[str]) -> None:
+    for t in times:
+        try:
+            h, m = map(int, t.split(":"))
+            assert 0 <= h <= 23 and 0 <= m <= 59
+        except Exception:
+            raise HTTPException(400, f"Invalid time '{t}' — use HH:MM (UTC, 24-hour)")
+
+
+def _get_times(db: Session, user_id: int | None, key: str) -> list[str]:
+    row = db.query(Setting).filter(Setting.user_id == user_id, Setting.key == key).first()
+    return json.loads(row.value) if row else []
+
+
+def _set_times(db: Session, user_id: int | None, key: str, times: list[str]) -> None:
+    _validate_times(times)
+    row = db.query(Setting).filter(Setting.user_id == user_id, Setting.key == key).first()
+    if row:
+        row.value = json.dumps(times)
+    else:
+        db.add(Setting(user_id=user_id, key=key, value=json.dumps(times)))
+    db.commit()
+
+
+@router.get("/schedule", response_model=ScheduleOut)
+def get_schedule(
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_schedule").first()
+    value = row.value if row else ""
+    # Migrate: old format was a JSON array e.g. "[]" or "[\"06:00\"]"
+    if value.startswith("["):
+        value = ""
+    return ScheduleOut(scrape_cron=value)
+
+
+@router.put("/schedule", response_model=ScheduleOut)
+def update_schedule(
+    body: ScheduleUpdate,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    cron = body.scrape_cron.strip()
+    if cron:
+        try:
+            from croniter import croniter
+            if not croniter.is_valid(cron):
+                raise ValueError
+        except (ValueError, Exception):
+            raise HTTPException(400, f"Invalid cron expression: {cron!r}")
+    row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_schedule").first()
+    if row:
+        row.value = cron
+    else:
+        db.add(Setting(user_id=None, key="scrape_schedule", value=cron))
+    db.commit()
+    return ScheduleOut(scrape_cron=cron)
+
+
+@router.get("/users/{user_id}/score-schedule", response_model=UserScheduleOut)
+def get_user_score_schedule(
+    user_id: int,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    if not db.get(User, user_id):
+        raise HTTPException(404, "User not found")
+    return UserScheduleOut(score_times=_get_times(db, user_id, "score_schedule"))
+
+
+@router.put("/users/{user_id}/score-schedule", response_model=UserScheduleOut)
+def update_user_score_schedule(
+    user_id: int,
+    body: UserScheduleUpdate,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    if not db.get(User, user_id):
+        raise HTTPException(404, "User not found")
+    _set_times(db, user_id, "score_schedule", body.score_times)
+    return UserScheduleOut(score_times=body.score_times)

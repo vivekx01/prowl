@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 import config
 
 celery_app = Celery(
@@ -14,5 +15,11 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
-    worker_prefetch_multiplier=1,  # one task at a time per worker
+    worker_prefetch_multiplier=1,
+    beat_schedule={
+        "check-schedule": {
+            "task": "tasks.check_schedule",
+            "schedule": crontab(minute="*"),  # every minute — cron expressions need minute precision
+        },
+    },
 )

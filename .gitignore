@@ -47,7 +47,6 @@ desktop.ini
 .playwright-mcp/
 
 # IDE / editors
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -65,3 +64,9 @@ htmlcov/
 *.db
 data/
 *.csv
+
+# Celery Beat runtime state
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+celerybeat.pid
