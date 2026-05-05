@@ -104,7 +104,7 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
 
             listing_q = db.query(JobListing).filter_by(company_id=company.id)
             if cutoff is not None:
-                listing_q = listing_q.filter(JobListing.posted_date >= cutoff)
+                listing_q = listing_q.filter(JobListing.first_seen_at >= cutoff)
             db_listings = [l for l in listing_q.all() if l.id not in already_scored]
 
             if not db_listings:
@@ -131,7 +131,9 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
                 for l in db_listings
             ]
 
-            _log(db, run_id, f"  {company.name}: {len(db_listings)} listings to evaluate")
+            no_desc_count = sum(1 for l in db_listings if not l.description)
+            _log(db, run_id, f"  {company.name}: {len(db_listings)} listings to evaluate ({no_desc_count} missing description)")
+            _log(db, run_id, "  titles: " + " | ".join(l.title for l in db_listings))
 
             # Stage 1 — title filter
             candidates = await job_filter.stage1_filter(scraper_listings)
@@ -159,6 +161,7 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
             matches = 0
             for sl in candidates:
                 if not sl.description:
+                    _log(db, run_id, f"  {company.name}: skipping '{sl.title}' — no description stored", "warning")
                     db.add(JobScore(listing_id=sl.raw["_db_id"], user_id=user_id, score=0.0, verdict="skip", reason="no description stored"))
                     db.commit()
                     continue

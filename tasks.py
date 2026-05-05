@@ -1,6 +1,6 @@
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from croniter import croniter
 
@@ -27,7 +27,8 @@ def check_schedule_task():
     from db.models import Profile, ScoreRun, Setting, ScrapeRun, User
 
     now = datetime.now(IST).replace(second=0, microsecond=0)
-    current_minutes = now.hour * 60 + now.minute
+    now_utc = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    current_minutes = now_utc.hour * 60 + now_utc.minute
 
     def _cron_fires_now(expr: str) -> bool:
         """True if the cron expression fired at the current IST minute."""
