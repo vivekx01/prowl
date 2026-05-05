@@ -134,6 +134,14 @@ export interface CompanyResult {
   matches: number;
 }
 
+export interface ScrapeStatus {
+  running: boolean;
+  result?: {
+    apply_count: number;
+    new_listings: number;
+  };
+}
+
 export interface AdminScoreRun {
   id: number;
   user_id: number;
