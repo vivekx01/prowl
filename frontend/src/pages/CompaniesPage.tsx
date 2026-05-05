@@ -658,14 +658,14 @@ export default function CompaniesPage() {
   return (
     <div className="w-full space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Companies</h1>
           <p className="text-sm text-slate-500 mt-0.5">
             {activeCount} active · {companies.length - activeCount} paused
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <ImportButton existing={companies} />
           <ExportButton companies={companies} platforms={platforms} />
           <button onClick={() => setModalOpen(true)} className="btn-primary flex items-center gap-1.5">

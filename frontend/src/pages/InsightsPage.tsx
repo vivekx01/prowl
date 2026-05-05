@@ -222,7 +222,7 @@ export default function InsightsPage() {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)] w-full">
+    <div className="flex flex-col h-[calc(100vh-5.5rem)] md:h-[calc(100vh-3rem)] w-full">
       {/* ── Messages ── */}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-3xl mx-auto px-2 py-6">
@@ -247,7 +247,7 @@ export default function InsightsPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                 {SUGGESTIONS.map(s => (
                   <button
                     key={s.q}

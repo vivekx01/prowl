@@ -95,14 +95,14 @@ function UserTableRow({
       </td>
 
       {/* Joined */}
-      <td className="px-5 py-3.5 text-xs text-slate-500">
+      <td className="px-5 py-3.5 text-xs text-slate-500 hidden sm:table-cell">
         {new Date(user.created_at).toLocaleDateString("en-IN", {
           day: "numeric", month: "short", year: "numeric",
         })}
       </td>
 
       {/* Scoring summary */}
-      <td className="px-4 py-3.5">
+      <td className="px-4 py-3.5 hidden md:table-cell">
         {runCount > 0 ? (
           <div className="flex items-center gap-2">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
@@ -349,13 +349,13 @@ export default function AdminPage() {
       </div>
 
       {/* Users */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead>
             <tr className="border-b border-slate-800 text-xs text-slate-500 uppercase tracking-wider">
               <th className="text-left px-5 py-3 font-medium">User</th>
-              <th className="text-left px-5 py-3 font-medium">Joined</th>
-              <th className="text-left px-4 py-3 font-medium">Last scoring</th>
+              <th className="text-left px-5 py-3 font-medium hidden sm:table-cell">Joined</th>
+              <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Last scoring</th>
               <th className="text-center px-4 py-3 font-medium">Admin</th>
               <th className="text-center px-4 py-3 font-medium">Active</th>
               <th className="px-4 py-3" />

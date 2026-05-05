@@ -90,16 +90,16 @@ function JobCard({ job }: { job: Job }) {
 
   return (
     <div className={`card border-l-2 transition-colors hover:border-slate-700 ${tier ? TIER_BORDER[tier] : "border-l-slate-800"}`}>
-      <div className="flex items-start gap-4 px-5 py-4">
+      <div className="flex items-start gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4">
         {/* Score */}
         <div className="shrink-0 flex items-center justify-center pt-0.5">
           {job.score ? (
-            <div className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center ${TIER_RING[tier!]}`}>
-              <span className="text-sm font-bold leading-none">{job.score.score.toFixed(1)}</span>
-              <span className="text-[9px] text-slate-600 leading-none mt-0.5">/10</span>
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex flex-col items-center justify-center ${TIER_RING[tier!]}`}>
+              <span className="text-xs sm:text-sm font-bold leading-none">{job.score.score.toFixed(1)}</span>
+              <span className="text-[8px] sm:text-[9px] text-slate-600 leading-none mt-0.5">/10</span>
             </div>
           ) : (
-            <div className="w-12 h-12 rounded-full border-2 border-slate-700 flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-slate-700 flex items-center justify-center">
               <span className="text-xs text-slate-700">—</span>
             </div>
           )}
@@ -107,7 +107,7 @@ function JobCard({ job }: { job: Job }) {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-2 sm:gap-4">
             <div className="min-w-0 flex-1">
               <a
                 href={job.url?.replace(/([^:])\/\/+/g, "$1/")}
@@ -115,21 +115,21 @@ function JobCard({ job }: { job: Job }) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 font-semibold text-slate-100 hover:text-violet-300 transition-colors group/link text-sm"
               >
-                <span>{job.title}</span>
+                <span className="truncate">{job.title}</span>
                 <IconExternal className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity shrink-0" />
               </a>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm text-slate-400 mt-0.5 truncate">
                 {job.company_name}
                 {job.location && <span className="text-slate-600"> · {job.location}</span>}
               </p>
             </div>
 
             {/* Status badge + dropdown */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {appStatus && (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[appStatus]}`}>
+                <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[appStatus]}`}>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[appStatus]}`} />
-                  {STATUS_LABEL[appStatus] ?? appStatus}
+                  <span className="hidden sm:inline">{STATUS_LABEL[appStatus] ?? appStatus}</span>
                 </span>
               )}
               <div className="relative">

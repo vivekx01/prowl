@@ -115,7 +115,7 @@ export default function CheckJDPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
         {/* Left — input */}
         <div className="card p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">

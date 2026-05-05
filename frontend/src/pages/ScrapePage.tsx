@@ -233,27 +233,27 @@ function RunRow({
       onClick={onClick}
       className={`card p-4 cursor-pointer transition-colors hover:border-slate-700 ${active ? "border-violet-500/40" : ""}`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <span className={`badge border ${STATUS_STYLES[run.status] ?? STATUS_STYLES.pending}`}>
             {run.status}
           </span>
           <span className="text-sm text-slate-300">Run #{run.id}</span>
           {run.started_at && (
-            <span className="text-xs text-slate-600">
+            <span className="text-xs text-slate-600 hidden sm:inline">
               {new Date(run.started_at).toLocaleString()}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
           {(run.status === "running" || run.status === "completed") && (
             <span className="text-xs text-slate-500">
-              {run.companies_done}/{run.companies_total} companies
+              {run.companies_done}/{run.companies_total} co.
             </span>
           )}
           {run.new_listings > 0 && (
             <span className="text-xs text-violet-400 font-medium">
-              {run.new_listings} new listings
+              +{run.new_listings}
             </span>
           )}
           {(run.status === "failed" || run.status === "cancelled") && (

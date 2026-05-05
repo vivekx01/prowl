@@ -243,22 +243,22 @@ export default function CompanyListingsPage() {
               return (
                 <div
                   key={l.id}
-                  className="px-5 py-3.5 flex items-center justify-between gap-4 hover:bg-slate-800/30 transition-colors"
+                  className="px-3 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4 hover:bg-slate-800/30 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-slate-200 font-medium leading-snug">{l.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-sm text-slate-200 font-medium leading-snug truncate">{l.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
                       {l.location || "—"}
                       {l.department ? ` · ${l.department}` : ""}
                       {l.posted_on ? ` · ${l.posted_on}` : ""}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     {appStatus && (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[appStatus]}`}>
+                      <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[appStatus]}`}>
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[appStatus]}`} />
-                        {STATUS_LABEL[appStatus] ?? appStatus}
+                        <span className="hidden sm:inline">{STATUS_LABEL[appStatus] ?? appStatus}</span>
                       </span>
                     )}
 
