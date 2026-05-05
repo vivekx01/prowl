@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    command: postgres -c shared_buffers=32MB
     environment:
       POSTGRES_DB: prowl
       POSTGRES_USER: prowl
