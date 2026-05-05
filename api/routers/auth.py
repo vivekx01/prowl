@@ -44,14 +44,14 @@ class LoginRequest(BaseModel):
 
 @router.post("/register")
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
-    if db.query(User).filter_by(email=body.email.lower()).first():
-        raise HTTPException(400, "Email already registered")
-    is_first = db.query(User).count() == 0
+    user_count = db.query(User).count()
+    if user_count > 0:
+        raise HTTPException(403, "Registration is closed")
     user = User(
         email=body.email.lower(),
         password_hash=_pwd.hash(body.password),
         name=body.name,
-        is_admin=is_first,
+        is_admin=True,
     )
     db.add(user)
     db.commit()

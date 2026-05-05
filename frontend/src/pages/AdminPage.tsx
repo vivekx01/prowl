@@ -159,12 +159,102 @@ function UserTableRow({
 // Page
 // ---------------------------------------------------------------------------
 
+function CreateUserModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ email: "", password: "", name: "", is_admin: false });
+  const [error, setError] = useState("");
+
+  const create = useMutation({
+    mutationFn: () => api.post("/admin/users", form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      onClose();
+    },
+    onError: (err: any) => setError(err.response?.data?.detail ?? "Something went wrong"),
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm space-y-4">
+        <h2 className="text-base font-semibold text-slate-100">Create User</h2>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5">Name</label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="Full name"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            placeholder="user@example.com"
+            required
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+          <input
+            type="password"
+            value={form.password}
+            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            placeholder="••••••••"
+            required
+            minLength={6}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition"
+          />
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.is_admin}
+            onChange={(e) => setForm((f) => ({ ...f, is_admin: e.target.checked }))}
+            className="rounded border-slate-600 bg-slate-800 text-violet-600 focus:ring-violet-500"
+          />
+          Admin access
+        </label>
+
+        {error && (
+          <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</p>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={() => create.mutate()}
+            disabled={create.isPending || !form.email || !form.password}
+            className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition"
+          >
+            {create.isPending ? "Creating…" : "Create"}
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg py-2 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { user: me } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [daysBack, setDaysBack] = useState("1");
   const [lastResult, setLastResult] = useState<{ started: number; skipped: number } | null>(null);
+  const [showCreateUser, setShowCreateUser] = useState(false);
 
   const { data: users = [], isLoading } = useQuery<UserRow[]>({
     queryKey: ["admin-users"],
@@ -218,6 +308,8 @@ export default function AdminPage() {
 
   return (
     <div className="w-full space-y-6">
+      {showCreateUser && <CreateUserModal onClose={() => setShowCreateUser(false)} />}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -225,6 +317,12 @@ export default function AdminPage() {
           <p className="text-sm text-slate-500 mt-0.5">Click a user to view their scoring history</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowCreateUser(true)}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium rounded-lg transition"
+          >
+            + Create User
+          </button>
           {lastResult && (
             <span className="text-xs text-slate-500">
               {lastResult.started} started · {lastResult.skipped} skipped

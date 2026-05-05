@@ -5,9 +5,13 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 
+from passlib.context import CryptContext
+
 from api.deps import get_admin_user
 from db.database import get_db
 from db.models import Profile, ScoreRun, ScoreRunLog, User
+
+_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -21,6 +25,13 @@ class UserOut(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+    is_admin: bool = False
 
 
 class UserPatch(BaseModel):
@@ -43,6 +54,26 @@ def _serialize(u: User) -> dict:
         "is_active": u.is_active,
         "created_at": u.created_at.isoformat() if u.created_at else None,
     }
+
+
+@router.post("/users", status_code=201)
+def create_user(
+    body: UserCreate,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    if db.query(User).filter_by(email=body.email.lower()).first():
+        raise HTTPException(400, "Email already registered")
+    user = User(
+        email=body.email.lower(),
+        password_hash=_pwd.hash(body.password),
+        name=body.name,
+        is_admin=body.is_admin,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return _serialize(user)
 
 
 @router.get("/users")
