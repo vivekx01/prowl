@@ -23,6 +23,8 @@ services:
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
     env_file: .env.production
+    environment:
+      PYTHONPATH: /app
     depends_on:
       db:
         condition: service_healthy
@@ -34,6 +36,8 @@ services:
     command: celery -A celery_app worker --loglevel=info --concurrency=2 -I tasks
     restart: unless-stopped
     env_file: .env.production
+    environment:
+      PYTHONPATH: /app
     depends_on:
       db:
         condition: service_healthy
