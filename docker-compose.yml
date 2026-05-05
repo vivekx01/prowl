@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-environment:
+    environment:
       POSTGRES_DB: prowl
       POSTGRES_USER: prowl
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
