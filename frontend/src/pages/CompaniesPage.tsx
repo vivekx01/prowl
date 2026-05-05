@@ -349,8 +349,8 @@ function CompanyCard({
 
         {/* Name + endpoint */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-slate-100 truncate">{company.name}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-sm font-medium text-slate-100 truncate min-w-0">{company.name}</p>
             <PlatformBadge platform={company.platform} />
           </div>
           <p className="text-xs text-slate-600 font-mono truncate mt-0.5">

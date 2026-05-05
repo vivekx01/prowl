@@ -113,7 +113,7 @@ function JobCard({ job }: { job: Job }) {
                 href={job.url?.replace(/([^:])\/\/+/g, "$1/")}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-semibold text-slate-100 hover:text-violet-300 transition-colors group/link text-sm"
+                className="flex items-center gap-1.5 font-semibold text-slate-100 hover:text-violet-300 transition-colors group/link text-sm overflow-hidden"
               >
                 <span className="truncate">{job.title}</span>
                 <IconExternal className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity shrink-0" />
@@ -172,7 +172,7 @@ function JobCard({ job }: { job: Job }) {
 
           <div className="mt-3 flex items-center gap-2.5 flex-wrap">
             {job.department && (
-              <span className="badge bg-slate-800 text-slate-400 border border-slate-700/60">{job.department}</span>
+              <span className="badge bg-slate-800 text-slate-400 border border-slate-700/60 max-w-[200px] overflow-hidden" title={job.department}><span className="truncate">{job.department}</span></span>
             )}
             {job.posted_on && <span className="text-xs text-slate-600">{job.posted_on}</span>}
             {job.application?.applied_at && (
