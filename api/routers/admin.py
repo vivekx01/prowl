@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -256,8 +255,9 @@ def stop_score_run(
     if run.celery_task_id:
         celery_app.control.revoke(run.celery_task_id, terminate=True, signal="SIGTERM")
 
+    from config import now_ist
     run.status = "cancelled"
-    run.finished_at = datetime.utcnow()
+    run.finished_at = now_ist()
     db.commit()
     return {"run_id": run_id, "status": "cancelled"}
 
@@ -266,8 +266,22 @@ def stop_score_run(
 # Schedule
 # ---------------------------------------------------------------------------
 
+def _next_scrape(cron: str) -> str | None:
+    if not cron:
+        return None
+    try:
+        from datetime import datetime
+        from croniter import croniter
+        from config import now_ist
+        nxt: datetime = croniter(cron, now_ist()).get_next(datetime)
+        return nxt.isoformat()
+    except Exception:
+        return None
+
+
 class ScheduleOut(BaseModel):
     scrape_cron: str
+    next_scrape_at: str | None = None
 
 
 class ScheduleUpdate(BaseModel):
@@ -288,7 +302,7 @@ def _validate_times(times: list[str]) -> None:
             h, m = map(int, t.split(":"))
             assert 0 <= h <= 23 and 0 <= m <= 59
         except Exception:
-            raise HTTPException(400, f"Invalid time '{t}' — use HH:MM (UTC, 24-hour)")
+            raise HTTPException(400, f"Invalid time '{t}' — use HH:MM (IST, 24-hour)")
 
 
 def _get_times(db: Session, user_id: int | None, key: str) -> list[str]:
@@ -316,7 +330,7 @@ def get_schedule(
     # Migrate: old format was a JSON array e.g. "[]" or "[\"06:00\"]"
     if value.startswith("["):
         value = ""
-    return ScheduleOut(scrape_cron=value)
+    return ScheduleOut(scrape_cron=value, next_scrape_at=_next_scrape(value))
 
 
 @router.put("/schedule", response_model=ScheduleOut)
@@ -339,7 +353,7 @@ def update_schedule(
     else:
         db.add(Setting(user_id=None, key="scrape_schedule", value=cron))
     db.commit()
-    return ScheduleOut(scrape_cron=cron)
+    return ScheduleOut(scrape_cron=cron, next_scrape_at=_next_scrape(cron))
 
 
 @router.get("/users/{user_id}/score-schedule", response_model=UserScheduleOut)

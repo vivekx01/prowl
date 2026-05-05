@@ -3,7 +3,7 @@ import json
 import sys
 import uuid
 from asyncio.subprocess import PIPE
-from datetime import datetime
+from config import now_ist
 from pathlib import Path
 
 from pounce import config
@@ -146,7 +146,7 @@ class PounceSession:
 
     async def screenshot(self, label: str = "screenshot") -> Path:
         """Take a screenshot and save it locally. Returns the file path."""
-        ts = datetime.utcnow().strftime("%H%M%S")
+        ts = now_ist().strftime("%H%M%S")
         path = self._screenshot_dir / f"{ts}_{label}.png"
         result = await self.client.call_tool(
             "browser_take_screenshot", {"path": str(path)}

@@ -1,5 +1,6 @@
-from datetime import datetime
 from typing import TYPE_CHECKING
+
+from config import now_ist
 
 from pounce.models import LearnedFlowRecord, LearnedStepRecord
 
@@ -84,7 +85,7 @@ class FlowStore:
         if existing:
             existing.steps = steps
             existing.success_count += 1
-            existing.last_success = datetime.utcnow()
+            existing.last_success = now_ist()
             if existing not in self._dirty:
                 self._dirty.append(existing)
         else:
@@ -92,7 +93,7 @@ class FlowStore:
                 company_domain=company_domain,
                 portal_key=portal_key,
                 success_count=1,
-                last_success=datetime.utcnow(),
+                last_success=now_ist(),
                 steps=steps,
             )
             self._flows[company_domain] = flow

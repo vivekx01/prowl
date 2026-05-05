@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from config import now_ist
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -26,7 +28,7 @@ def list_listings(
         q = q.filter(JobListing.company_id == company_id)
 
     if days_back > 0:
-        cutoff = datetime.utcnow() - timedelta(days=days_back)
+        cutoff = now_ist() - timedelta(days=days_back)
         q = q.filter(JobListing.first_seen_at >= cutoff)
 
     total = q.count()

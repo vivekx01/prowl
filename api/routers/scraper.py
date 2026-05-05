@@ -44,8 +44,8 @@ def stop_scrape(
     _: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
-    from datetime import datetime
     from celery_app import celery_app
+    from config import now_ist
 
     run = db.get(ScrapeRun, run_id)
     if not run:
@@ -57,7 +57,7 @@ def stop_scrape(
         celery_app.control.revoke(run.celery_task_id, terminate=True, signal="SIGTERM")
 
     run.status = "cancelled"
-    run.finished_at = datetime.utcnow()
+    run.finished_at = now_ist()
     db.commit()
 
     return {"run_id": run_id, "status": "cancelled"}

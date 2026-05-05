@@ -1,4 +1,4 @@
-from datetime import datetime
+from config import now_ist
 
 from sqlalchemy import (
     Boolean, Column, DateTime, Float, ForeignKey,
@@ -18,7 +18,7 @@ class User(Base):
     name = Column(String, default="")
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_ist)
 
     profiles = relationship("Profile", back_populates="user")
     score_runs = relationship("ScoreRun", back_populates="user")
@@ -32,7 +32,7 @@ class Company(Base):
     platform = Column(String, nullable=False, default="workday")
     active = Column(Boolean, default=True)
     config = Column(JSON, nullable=False, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_ist)
 
     listings = relationship("JobListing", back_populates="company")
 
@@ -51,7 +51,7 @@ class JobListing(Base):
     department = Column(String, default="")
     platform = Column(String, default="workday")
     description = Column(Text, nullable=True)
-    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    first_seen_at = Column(DateTime, default=now_ist)
 
     company = relationship("Company", back_populates="listings")
     scores = relationship("JobScore", back_populates="listing")
@@ -71,7 +71,7 @@ class JobScore(Base):
     score = Column(Float, default=0.0)
     verdict = Column(String, default="skip")
     reason = Column(Text, default="")
-    processed_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, default=now_ist)
 
     listing = relationship("JobListing", back_populates="scores")
     user = relationship("User")
@@ -90,8 +90,8 @@ class Application(Base):
     status = Column(String, default="saved")
     applied_at = Column(DateTime, nullable=True)
     notes = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_ist)
+    updated_at = Column(DateTime, default=now_ist, onupdate=now_ist)
 
     listing = relationship("JobListing", back_populates="applications")
     user = relationship("User")
@@ -107,7 +107,7 @@ class Profile(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     content = Column(Text, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=now_ist, onupdate=now_ist)
 
     user = relationship("User", back_populates="profiles")
 
@@ -131,7 +131,7 @@ class ScrapeRun(Base):
     id = Column(Integer, primary_key=True)
     celery_task_id = Column(String, nullable=True)
     status = Column(String, default="pending")
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=now_ist)
     finished_at = Column(DateTime, nullable=True)
     company_ids = Column(Text, nullable=True)
     completed_company_ids = Column(Text, default="[]")
@@ -150,7 +150,7 @@ class ScrapeRunLog(Base):
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("scrape_runs.id"), nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=now_ist)
     level = Column(String, default="info")
     message = Column(Text, nullable=False)
 
@@ -164,7 +164,7 @@ class ScoreRun(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     celery_task_id = Column(String, nullable=True)
     status = Column(String, default="pending")
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=now_ist)
     finished_at = Column(DateTime, nullable=True)
     companies_total = Column(Integer, default=0)
     companies_done = Column(Integer, default=0)
@@ -191,7 +191,7 @@ class ScoreRunLog(Base):
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("score_runs.id"), nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=now_ist)
     level = Column(String, default="info")
     message = Column(Text, nullable=False)
 
@@ -210,7 +210,7 @@ class PounceRun(Base):
     listing_id = Column(Integer, ForeignKey("job_listings.id"), nullable=True)
     status = Column(String, default="pending")  # pending/running/completed/failed/dry_run_completed
     dry_run = Column(Boolean, default=False)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=now_ist)
     finished_at = Column(DateTime, nullable=True)
     agent_turns = Column(Integer, default=0)
     step_results = Column(JSON, default=list)
@@ -224,7 +224,7 @@ class PounceRunLog(Base):
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("pounce_runs.id"), nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=now_ist)
     level = Column(String, default="info")
     message = Column(Text, nullable=False)
 
@@ -246,7 +246,7 @@ class AnswerMemory(Base):
     company_domain = Column(String, nullable=True)   # "google.wd5.myworkdayjobs.com" | null
     portal_key = Column(String, nullable=True)       # "workday" | null (global)
     use_count = Column(Integer, default=1)
-    last_used = Column(DateTime, default=datetime.utcnow)
+    last_used = Column(DateTime, default=now_ist)
 
     __table_args__ = (
         UniqueConstraint("user_id", "normalized_key", "company_domain", "portal_key",

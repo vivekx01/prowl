@@ -25,6 +25,7 @@ services:
     env_file: .env.production
     environment:
       PYTHONPATH: /app
+      TZ: Asia/Kolkata
     depends_on:
       db:
         condition: service_healthy
@@ -38,6 +39,7 @@ services:
     env_file: .env.production
     environment:
       PYTHONPATH: /app
+      TZ: Asia/Kolkata
     depends_on:
       db:
         condition: service_healthy
@@ -51,6 +53,7 @@ services:
     env_file: .env.production
     environment:
       PYTHONPATH: /app
+      TZ: Asia/Kolkata
     depends_on:
       db:
         condition: service_healthy

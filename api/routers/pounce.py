@@ -1,4 +1,4 @@
-from datetime import datetime
+from config import now_ist
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -296,13 +296,13 @@ def ensure_application(
     app = db.query(Application).filter_by(listing_id=listing_id, user_id=user.id).first()
     if app:
         app.status = "applied"
-        app.applied_at = datetime.utcnow()
+        app.applied_at = now_ist()
     else:
         app = Application(
             listing_id=listing_id,
             user_id=user.id,
             status="applied",
-            applied_at=datetime.utcnow(),
+            applied_at=now_ist(),
             notes="Applied via Pounce",
         )
         db.add(app)
@@ -356,7 +356,7 @@ def upsert_memory(
             existing.confidence = item.confidence
             existing.source = item.source
             existing.use_count += 1
-            existing.last_used = datetime.utcnow()
+            existing.last_used = now_ist()
         else:
             db.add(AnswerMemory(
                 user_id=user.id,
@@ -392,7 +392,7 @@ def upsert_flows(
         if flow:
             flow.portal_key = item.portal_key
             flow.success_count += 1
-            flow.last_success = datetime.utcnow()
+            flow.last_success = now_ist()
             # Replace all steps
             for step in flow.steps:
                 db.delete(step)
@@ -403,7 +403,7 @@ def upsert_flows(
                 company_domain=item.company_domain,
                 portal_key=item.portal_key,
                 success_count=1,
-                last_success=datetime.utcnow(),
+                last_success=now_ist(),
             )
             db.add(flow)
             db.flush()
@@ -436,7 +436,7 @@ def create_run(
         agent_turns=body.agent_turns,
         step_results=body.step_results,
         error_message=body.error_message,
-        finished_at=datetime.utcnow() if body.status in ("completed", "failed", "dry_run_completed") else None,
+        finished_at=now_ist() if body.status in ("completed", "failed", "dry_run_completed") else None,
     )
     db.add(run)
     db.commit()
@@ -459,7 +459,7 @@ def update_run(
     for field, val in updates.items():
         setattr(run, field, val)
     if body.status in ("completed", "failed", "dry_run_completed") and not run.finished_at:
-        run.finished_at = datetime.utcnow()
+        run.finished_at = now_ist()
     db.commit()
     db.refresh(run)
     return run

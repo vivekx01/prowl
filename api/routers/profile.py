@@ -1,5 +1,6 @@
 import io
-from datetime import datetime
+
+from config import now_ist
 
 import pypdf
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -34,7 +35,7 @@ def update_profile(
     profile = db.query(Profile).filter_by(user_id=user.id).first()
     if profile:
         profile.content = body.content
-        profile.updated_at = datetime.utcnow()
+        profile.updated_at = now_ist()
     else:
         profile = Profile(content=body.content, user_id=user.id)
         db.add(profile)

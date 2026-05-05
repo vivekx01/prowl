@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import config
+from config import now_ist
 from db.database import SessionLocal
 from db.models import Company, JobListing, JobScore, Profile, ScrapeRun, ScrapeRunLog
 from scrapers import get_scraper
@@ -28,10 +29,10 @@ def parse_posted_on(raw: str) -> datetime | None:
         return None
     s = raw.strip().lower()
     if "today" in s:
-        return datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        return now_ist().replace(hour=0, minute=0, second=0, microsecond=0)
     m = re.search(r"(\d+)\+?\s+day", s)
     if m:
-        return datetime.utcnow() - timedelta(days=int(m.group(1)))
+        return now_ist() - timedelta(days=int(m.group(1)))
     try:
         return datetime.fromisoformat(raw.strip())
     except ValueError:
@@ -85,7 +86,7 @@ def seed_defaults(db: Session):
 # ---------------------------------------------------------------------------
 
 def cleanup_old_listings(db: Session) -> int:
-    cutoff = datetime.utcnow() - timedelta(days=config.LISTING_RETENTION_DAYS)
+    cutoff = now_ist() - timedelta(days=config.LISTING_RETENTION_DAYS)
     old_ids = [
         row[0] for row in
         db.query(JobListing.id)
@@ -243,7 +244,7 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
         run.status = "failed"
 
     finally:
-        run.finished_at = datetime.utcnow()
+        run.finished_at = now_ist()
         run.new_listings = total_new
         db.commit()
 

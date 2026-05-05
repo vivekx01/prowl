@@ -1,10 +1,11 @@
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from croniter import croniter
 
 from celery_app import celery_app
+from config import IST
 from runner import run_scrape
 
 
@@ -21,15 +22,15 @@ def score_task(self, run_id: int, user_id: int, company_ids: list[int] | None = 
 
 @celery_app.task(name="tasks.check_schedule", max_retries=0)
 def check_schedule_task():
-    """Runs every 15 minutes. Triggers scrape/score if current UTC time matches a configured slot."""
+    """Runs every minute. Triggers scrape/score if current IST time matches a configured slot."""
     from db.database import SessionLocal
     from db.models import Profile, ScoreRun, Setting, ScrapeRun, User
 
-    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    now = datetime.now(IST).replace(second=0, microsecond=0)
     current_minutes = now.hour * 60 + now.minute
 
     def _cron_fires_now(expr: str) -> bool:
-        """True if the cron expression fired at the current UTC minute."""
+        """True if the cron expression fired at the current IST minute."""
         if not expr:
             return False
         try:
@@ -39,7 +40,7 @@ def check_schedule_task():
             return False
 
     def _slot_fires_now(times: list[str]) -> bool:
-        """True if current UTC time is within 2 minutes of any HH:MM slot."""
+        """True if current IST time is within 2 minutes of any HH:MM slot."""
         for t in times:
             h, m = map(int, t.split(":"))
             diff = (current_minutes - (h * 60 + m)) % (24 * 60)
@@ -66,7 +67,7 @@ def check_schedule_task():
                 run.celery_task_id = task.id
                 db.commit()
 
-        # Per-user score schedules (HH:MM UTC slots)
+        # Per-user score schedules (HH:MM IST slots)
         users = (
             db.query(User)
             .join(Profile, Profile.user_id == User.id)

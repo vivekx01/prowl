@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 import config
+from config import now_ist
 from db.database import SessionLocal
 from db.models import Company, JobListing, JobScore, Profile, ScoreRun, ScoreRunLog
 from llm.filter import JobFilter
@@ -75,7 +76,7 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
 
     cutoff = None
     if run.days_back and run.days_back > 0:
-        cutoff = datetime.utcnow() - timedelta(days=run.days_back)
+        cutoff = now_ist() - timedelta(days=run.days_back)
 
     try:
         for company in companies:
@@ -207,6 +208,6 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
         _log(db, run_id, f"Fatal error: {e}", "error")
 
     finally:
-        run.finished_at = datetime.utcnow()
+        run.finished_at = now_ist()
         run.current_company_id = None
         db.commit()

@@ -1,4 +1,4 @@
-from datetime import datetime
+from config import now_ist
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -47,7 +47,7 @@ def create_application(
         user_id=user.id,
         status=body.status,
         notes=body.notes,
-        applied_at=datetime.utcnow() if body.status == "applied" else None,
+        applied_at=now_ist() if body.status == "applied" else None,
     )
     db.add(app)
     db.commit()
@@ -68,11 +68,11 @@ def update_application(
 
     updates = body.model_dump(exclude_none=True)
     if "status" in updates and updates["status"] == "applied" and not app.applied_at:
-        updates.setdefault("applied_at", datetime.utcnow())
+        updates.setdefault("applied_at", now_ist())
 
     for field, val in updates.items():
         setattr(app, field, val)
-    app.updated_at = datetime.utcnow()
+    app.updated_at = now_ist()
     db.commit()
     db.refresh(app)
     return app

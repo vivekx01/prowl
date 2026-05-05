@@ -283,6 +283,19 @@ function RunRow({
 // Main page
 // ---------------------------------------------------------------------------
 
+function fmtNextRun(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const dStr = d.toDateString();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (dStr === todayStr) return `Next scrape today at ${time}`;
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (dStr === tomorrow.toDateString()) return `Next scrape tomorrow at ${time}`;
+  return `Next scrape ${d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} at ${time}`;
+}
+
 export default function ScrapePage() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -297,6 +310,12 @@ export default function ScrapePage() {
     queryKey: ["runs"],
     queryFn: () => api.get("/runs").then(r => r.data),
     refetchInterval: 5000,
+  });
+
+  const { data: schedule } = useQuery<{ scrape_cron: string; next_scrape_at: string | null }>({
+    queryKey: ["admin-schedule"],
+    queryFn: () => api.get("/admin/schedule").then(r => r.data),
+    refetchInterval: 60_000,
   });
 
   // Auto-select the latest running run
@@ -352,12 +371,15 @@ export default function ScrapePage() {
 
 
         <div className="flex items-center justify-between pt-1 border-t border-slate-800">
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-slate-600 space-y-0.5 flex flex-col">
             {isRunning ? (
               <span className="text-violet-400 font-medium">Scrape in progress…</span>
             ) : runs[0] ? (
-              `Last run ${new Date(runs[0].started_at!).toLocaleString()}`
-            ) : "No runs yet"}
+              <span>Last run {new Date(runs[0].started_at!).toLocaleString()}</span>
+            ) : <span>No runs yet</span>}
+            {!isRunning && schedule?.next_scrape_at && (
+              <span className="text-slate-500">{fmtNextRun(schedule.next_scrape_at)}</span>
+            )}
           </span>
           <div className="flex items-center gap-2">
             {isRunning && (() => {

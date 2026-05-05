@@ -339,10 +339,10 @@ def schedule_status():
     click.echo(f"Cron: {cron}")
     try:
         from apscheduler.triggers.cron import CronTrigger
-        from datetime import timezone
-        trigger = CronTrigger.from_crontab(cron)
+        from config import IST
         from datetime import datetime
-        next_run = trigger.get_next_fire_time(None, datetime.now(tz=timezone.utc))
+        trigger = CronTrigger.from_crontab(cron)
+        next_run = trigger.get_next_fire_time(None, datetime.now(tz=IST))
         click.echo(f"Next run: {next_run}")
     except Exception:
         click.echo("(install apscheduler to show next run time)")

@@ -1,5 +1,6 @@
 import re
-from datetime import datetime
+
+from config import now_ist
 
 from pounce.models import AnswerMemoryRecord
 
@@ -63,7 +64,7 @@ class AnswerStore:
                 continue
             if rec.normalized_key == normalized_key:
                 rec.use_count += 1
-                rec.last_used = datetime.utcnow()
+                rec.last_used = now_ist()
                 return rec.answer
         return None
 
@@ -93,7 +94,7 @@ class AnswerStore:
                 rec.confidence = confidence
                 rec.source = source
                 rec.use_count += 1
-                rec.last_used = datetime.utcnow()
+                rec.last_used = now_ist()
                 if rec not in self._dirty:
                     self._dirty.append(rec)
                 return rec

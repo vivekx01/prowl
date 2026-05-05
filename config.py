@@ -1,6 +1,15 @@
 import os
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
 from dotenv import load_dotenv
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def now_ist() -> datetime:
+    return datetime.now(IST).replace(tzinfo=None)
 
 load_dotenv()
 
