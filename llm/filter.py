@@ -97,24 +97,29 @@ STEP 1 — Extract from the JD (do this mentally before scoring):
 • Core day-to-day responsibilities
 
 STEP 2 — Score each dimension out of 10:
-  A. Technical fit   (35%): fraction of required skills possessed; bonus for preferred skills
-  B. Seniority match (25%): candidate years/level vs JD requirement — penalise over/under by >2 years
-  C. Role fit        (25%): day-to-day work alignment with candidate's background and goals
-  D. Domain fit      (15%): industry/problem-space alignment
+  A. Technical fit   (40%): fraction of required skills possessed; bonus for preferred skills. \
+     This is the most important dimension — a strong technical match should anchor the score high \
+     even if other dimensions are weaker.
+  B. Role fit        (30%): day-to-day work alignment with candidate's background and goals
+  C. Seniority match (20%): candidate years/level vs JD requirement. \
+     IMPORTANT: JD experience requirements are frequently inflated/aspirational, especially in India. \
+     A 1–2 year gap is normal and should not dominate the score. \
+     Only penalise heavily (score ≤ 4) when the gap is 4+ years or the role is clearly senior/staff/principal level.
+  D. Domain fit      (10%): industry/problem-space alignment
 
 STEP 3 — Compute weighted score:
-  score = round(A×0.35 + B×0.25 + C×0.25 + D×0.15, 1)
+  score = round(A×0.40 + B×0.30 + C×0.20 + D×0.10, 1)
 
 VERDICT:
-  "apply"  — score ≥ 7.0 AND seniority is compatible (candidate not underqualified by more than 1 year)
+  "apply"  — score ≥ 7.0 AND no hard blockers (e.g. completely wrong tech stack, wrong role type)
   "skip"   — everything else
 
-CALIBRATION (most jobs should land 4–7; be conservative, do not inflate):
+CALIBRATION — use the full range, do not compress scores into a narrow band:
   9.0–10.0  Exceptional — candidate exceeds requirements across the board
   7.5–8.9   Strong fit — minor gaps, clear case to apply
-  6.0–7.4   Stretch — notable gaps but not disqualifying
-  4.0–5.9   Weak — significant mismatch in stack or seniority
-  1.0–3.9   Poor — wrong role type, wrong domain, or hard blockers present
+  6.0–7.4   Reasonable match — candidate meets core technical requirements with some gaps
+  4.0–5.9   Weak — significant mismatch in stack or seniority gap of 4+ years
+  1.0–3.9   Poor — wrong role type, wrong domain, or hard blockers (e.g. Java role, candidate has no Java)
 
 Respond with this exact JSON and nothing else:
 {{
