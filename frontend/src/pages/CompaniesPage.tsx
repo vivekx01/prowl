@@ -8,10 +8,20 @@ import Modal from "../components/Modal";
 // ---------------------------------------------------------------------------
 
 const PLATFORM_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  workday:  { bg: "bg-blue-500/10",   text: "text-blue-400",   dot: "bg-blue-500" },
-  linkedin: { bg: "bg-sky-500/10",    text: "text-sky-400",    dot: "bg-sky-500" },
-  naukri:   { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-500" },
+  workday:    { bg: "bg-blue-500/10",   text: "text-blue-400",   dot: "bg-blue-500" },
+  linkedin:   { bg: "bg-sky-500/10",    text: "text-sky-400",    dot: "bg-sky-500" },
+  naukri:     { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-500" },
+  greenhouse: { bg: "bg-green-500/10",  text: "text-green-400",  dot: "bg-green-500" },
+  lever:      { bg: "bg-rose-500/10",   text: "text-rose-400",   dot: "bg-rose-500" },
 };
+
+function getDisplayUrl(platform: string, config: Record<string, unknown>): string {
+  if (platform === "greenhouse" && config.slug)
+    return `https://boards-api.greenhouse.io/v1/boards/${config.slug}/jobs`;
+  if (platform === "lever" && config.slug)
+    return `https://api.lever.co/v0/postings/${config.slug}?mode=json`;
+  return String(config.listing_endpoint ?? Object.values(config)[0] ?? "");
+}
 
 function PlatformBadge({ platform }: { platform: string }) {
   const c = PLATFORM_COLORS[platform] ?? { bg: "bg-slate-800", text: "text-slate-400", dot: "bg-slate-500" };
@@ -354,7 +364,7 @@ function CompanyCard({
             <PlatformBadge platform={company.platform} />
           </div>
           <p className="text-xs text-slate-600 font-mono truncate mt-0.5">
-            {company.config?.listing_endpoint ?? Object.values(company.config ?? {})[0] ?? ""}
+            {getDisplayUrl(company.platform, company.config ?? {})}
           </p>
         </div>
 
@@ -428,6 +438,12 @@ const PLATFORM_FIELDS: Record<string, FieldDef[]> = {
     { key: "jd_base",          label: "JD base URL",          placeholder: "https://company.wd1.myworkdayjobs.com/wday/cxs/…" },
     { key: "base_careers_url", label: "Careers page URL",      placeholder: "https://company.wd1.myworkdayjobs.com/en-US/…" },
     { key: "payload",          label: "Payload",               placeholder: "{}", multiline: true, hint: "JSON body sent with the listing POST request" },
+  ],
+  greenhouse: [
+    { key: "slug", label: "Greenhouse board slug", placeholder: "stripe", required: true, hint: "The slug from boards.greenhouse.io/<slug>/jobs" },
+  ],
+  lever: [
+    { key: "slug", label: "Lever company slug", placeholder: "h1", required: true, hint: "The slug from jobs.lever.co/<slug>" },
   ],
 };
 

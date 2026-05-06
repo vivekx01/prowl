@@ -65,15 +65,14 @@ class WorkdayScraper(BaseScraper):
             except Exception as e:
                 raise RuntimeError(f"[workday] {company} fetch error at offset {offset}: {e}") from e
 
-            postings = data.get("jobPostings", [])
+            if "jobPostings" not in data:
+                top_keys = list(data.keys())[:8]
+                raise RuntimeError(
+                    f"[workday] {company}: response missing 'jobPostings' key. "
+                    f"Top-level keys: {top_keys}"
+                )
+            postings = data["jobPostings"]
             if not postings:
-                if offset == 0:
-                    # Help diagnose unexpected empty responses
-                    top_keys = list(data.keys())[:8]
-                    raise RuntimeError(
-                        f"[workday] {company}: response had no 'jobPostings' key. "
-                        f"Top-level keys: {top_keys}"
-                    )
                 break
 
             for p in postings:

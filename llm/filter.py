@@ -62,14 +62,17 @@ here than to waste tokens evaluating it in the next stage.
 Use ONLY the job title (and location if relevant) to decide. Do NOT guess at the full JD.
 
 Rules (all derived from the candidate profile — do not hardcode):
-1. SENIORITY: Infer the candidate's level from their years of experience and current role. \
+1. LOCATION: Exclude any job that is NOT based in India and NOT explicitly remote/WFH. \
+   If the location field names a city or country outside India (e.g. "New York", "London", "US", "UK", \
+   "Singapore") with no remote option, drop it immediately. When location is blank or ambiguous, keep it.
+2. SENIORITY: Infer the candidate's level from their years of experience and current role. \
    Exclude titles that clearly indicate a level above what the candidate can reasonably target.
-2. TECH STACK: If the title explicitly names a technology (language, framework, platform) that \
+3. TECH STACK: If the title explicitly names a technology (language, framework, platform) that \
    is NOT in the candidate's skill set, exclude it. E.g. if title says "Java Engineer" or \
    "C++ Developer" and the candidate has neither, drop it immediately.
-3. ROLE TYPE: Exclude roles that are clearly outside the candidate's domain based on their profile \
+4. ROLE TYPE: Exclude roles that are clearly outside the candidate's domain based on their profile \
    (e.g. pure sales, pure research, QA/testing, non-engineering functions).
-4. INCLUDE anything that looks like a plausible match — even if the title is vague. \
+5. INCLUDE anything that looks like a plausible match — even if the title is vague. \
    Only exclude when there is a clear signal of mismatch.
 
 Respond with a JSON object in this exact format:

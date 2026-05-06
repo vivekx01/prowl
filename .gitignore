@@ -67,6 +67,7 @@ data/
 
 # Celery Beat runtime state
 celerybeat-schedule
+celerybeat-schedule.*
 celerybeat-schedule-shm
 celerybeat-schedule-wal
 celerybeat.pid
