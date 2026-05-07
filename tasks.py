@@ -20,6 +20,39 @@ def score_task(self, run_id: int, user_id: int, company_ids: list[int] | None = 
     asyncio.run(run_score(run_id=run_id, user_id=user_id, company_ids=company_ids))
 
 
+@celery_app.task(name="tasks.cleanup_old_listings", max_retries=0)
+def cleanup_old_listings():
+    from datetime import timedelta
+    from db.database import SessionLocal
+    from db.models import Application, JobListing, JobScore, PounceRun
+    from config import now_ist
+
+    db = SessionLocal()
+    try:
+        cutoff = now_ist() - timedelta(days=30)
+
+        protected = set()
+        protected.update(r[0] for r in db.query(Application.listing_id).all())
+        protected.update(r[0] for r in db.query(PounceRun.listing_id).filter(PounceRun.listing_id.isnot(None)).all())
+
+        ids = [
+            r[0] for r in db.query(JobListing.id).filter(JobListing.first_seen_at < cutoff).all()
+            if r[0] not in protected
+        ]
+        if not ids:
+            return
+
+        db.query(JobScore).filter(JobScore.listing_id.in_(ids)).delete(synchronize_session=False)
+        db.query(JobListing).filter(JobListing.id.in_(ids)).delete(synchronize_session=False)
+        db.commit()
+        print(f"[cleanup] removed {len(ids)} listings older than 30 days")
+    except Exception as e:
+        db.rollback()
+        print(f"[cleanup] error: {e}")
+    finally:
+        db.close()
+
+
 @celery_app.task(name="tasks.check_schedule", max_retries=0)
 def check_schedule_task():
     """Runs every minute. Triggers scrape/score if current IST time matches a configured slot."""

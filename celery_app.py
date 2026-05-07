@@ -21,5 +21,9 @@ celery_app.conf.update(
             "task": "tasks.check_schedule",
             "schedule": crontab(minute="*"),  # every minute — cron expressions need minute precision
         },
+        "cleanup-old-listings": {
+            "task": "tasks.cleanup_old_listings",
+            "schedule": crontab(hour=2, minute=0),  # 2 AM IST daily
+        },
     },
 )

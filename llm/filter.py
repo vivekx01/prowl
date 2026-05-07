@@ -105,9 +105,13 @@ STEP 2 — Score each dimension out of 10:
      even if other dimensions are weaker.
   B. Role fit        (30%): day-to-day work alignment with candidate's background and goals
   C. Seniority match (20%): candidate years/level vs JD requirement. \
+     Score this dimension as follows — be precise: \
+     • Candidate meets or exceeds JD minimum → 8–10 \
+     • Candidate is 1 year under JD minimum → 6–7 (normal, do not over-penalise) \
+     • Candidate is 2–3 years under → 4–5 \
+     • Candidate is 4+ years under, or role is Staff/Principal/Lead → 1–3 \
      IMPORTANT: JD experience requirements are frequently inflated/aspirational, especially in India. \
-     A 1–2 year gap is normal and should not dominate the score. \
-     Only penalise heavily (score ≤ 4) when the gap is 4+ years or the role is clearly senior/staff/principal level.
+     A 1-year gap is normal and must NOT be treated as a significant negative.
   D. Domain fit      (10%): industry/problem-space alignment
 
 STEP 3 — Compute weighted score:
@@ -119,10 +123,16 @@ VERDICT:
 
 CALIBRATION — use the full range, do not compress scores into a narrow band:
   9.0–10.0  Exceptional — candidate exceeds requirements across the board
-  7.5–8.9   Strong fit — minor gaps, clear case to apply
-  6.0–7.4   Reasonable match — candidate meets core technical requirements with some gaps
-  4.0–5.9   Weak — significant mismatch in stack or seniority gap of 4+ years
-  1.0–3.9   Poor — wrong role type, wrong domain, or hard blockers (e.g. Java role, candidate has no Java)
+  7.5–8.9   Strong fit — good technical match, experience within 1 year of requirement → should result in "apply"
+  6.5–7.4   Reasonable stretch — strong technical match but 2-3 year experience gap, or minor tech gaps
+  5.0–6.4   Weak — significant tech mismatch OR 3-4 year seniority gap
+  1.0–4.9   Poor — wrong stack (e.g. Java-only role with no Java), wrong role type, 5+ year gap
+
+EXAMPLE scores to calibrate against:
+  • Candidate has Python+LangChain, role requires Python+LangChain, needs 2-3 yrs, candidate has 2 yrs → 7.5–8.0 "apply"
+  • Candidate has React+Node, role requires React+Node, needs 3 yrs, candidate has 2 yrs → 7.0–7.5 "apply"
+  • Candidate has JS/Python, role requires Java primarily, needs 3 yrs, candidate has 2 yrs → 4.5–5.5 "skip"
+  • Candidate has React, role requires Senior Engineer with 7+ yrs → 4.0–5.0 "skip"
 
 Respond with this exact JSON and nothing else:
 {{
