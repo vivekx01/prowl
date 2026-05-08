@@ -2,6 +2,88 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../api/client";
 
+function SettingsPanel() {
+  const qc = useQueryClient();
+
+  const { data: settings = [] } = useQuery<{ key: string; value: string }[]>({
+    queryKey: ["settings"],
+    queryFn: () => api.get("/settings").then(r => r.data),
+  });
+
+  const [chatId, setChatId] = useState("");
+  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [testError, setTestError] = useState("");
+
+  useEffect(() => {
+    const c = settings.find(s => s.key === "telegram_chat_id");
+    if (c) setChatId(c.value);
+  }, [settings]);
+
+  const saveSetting = useMutation({
+    mutationFn: (kv: { key: string; value: string }) =>
+      api.put(`/settings/${kv.key}`, { value: kv.value }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
+  });
+
+  async function sendTest() {
+    setTestStatus("sending");
+    setTestError("");
+    try {
+      await api.post("/settings/test-notification");
+      setTestStatus("ok");
+      setTimeout(() => setTestStatus("idle"), 3000);
+    } catch (e: any) {
+      setTestError(e?.response?.data?.detail ?? "Failed to send test");
+      setTestStatus("error");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="card p-5 space-y-4">
+        <div>
+          <h2 className="text-sm font-medium text-slate-200">Notifications</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Get notified via Telegram when matches are found.</p>
+        </div>
+        <div>
+          <p className="text-sm text-slate-300 mb-1">Telegram Chat ID</p>
+          <p className="text-xs text-slate-500 mb-2">
+            Message <span className="font-mono text-slate-400">@userinfobot</span> to get your ID
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={chatId}
+              onChange={e => { setChatId(e.target.value); setTestStatus("idle"); }}
+              placeholder="e.g. 123456789"
+              className="input flex-1 font-mono text-sm"
+            />
+            <button
+              onClick={sendTest}
+              disabled={!chatId.trim() || testStatus === "sending"}
+              className="btn-secondary disabled:opacity-30 shrink-0"
+            >
+              {testStatus === "sending" ? "Sending…" : testStatus === "ok" ? "Sent!" : "Test"}
+            </button>
+          </div>
+          {testStatus === "error" && (
+            <p className="text-xs text-red-400 mt-1.5">{testError}</p>
+          )}
+        </div>
+        <div className="flex justify-end pt-1 border-t border-slate-800">
+          <button
+            onClick={() => saveSetting.mutate({ key: "telegram_chat_id", value: chatId })}
+            disabled={saveSetting.isPending}
+            className="btn-primary"
+          >
+            {saveSetting.isPending ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Resume upload card
 // ---------------------------------------------------------------------------
@@ -162,9 +244,10 @@ export default function ProfilePage() {
           />
         </section>
 
-        {/* Right — upload */}
-        <div>
+        {/* Right — upload + settings */}
+        <div className="space-y-5">
           <ResumeUpload onGenerated={handleGenerated} />
+          <SettingsPanel />
         </div>
       </div>
     </div>

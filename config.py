@@ -36,6 +36,10 @@ SCORE_MODEL_PRICE_IN       = float(os.getenv("SCORE_MODEL_PRICE_IN",       "0.09
 SCORE_MODEL_PRICE_OUT      = float(os.getenv("SCORE_MODEL_PRICE_OUT",      "0.45"))
 SCORE_MODEL_CACHE_DISCOUNT = float(os.getenv("SCORE_MODEL_CACHE_DISCOUNT", "1.0"))
 
+NEXUS_NOTIFY_URL = os.getenv("NEXUS_NOTIFY_URL", "")
+NEXUS_API_KEY    = os.getenv("NEXUS_API_KEY", "")
+PROWL_URL        = os.getenv("PROWL_URL", "")
+
 REQUEST_DELAY = float(os.getenv("REQUEST_DELAY", "1.5"))
 MAX_JOBS_PER_COMPANY = int(os.getenv("MAX_JOBS_PER_COMPANY", "200"))
 

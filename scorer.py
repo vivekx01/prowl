@@ -73,6 +73,7 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
     _log(db, run_id, f"  compact profile: {job_filter._compact_profile}")
     results: list[dict] = []
     total_apply = 0
+    notify_matches: list[dict] = []
 
     cutoff = None
     if run.days_back and run.days_back > 0:
@@ -171,15 +172,24 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
                     # Parse failed — leave unscored so the next run retries it
                     db.commit()
                     continue
+                verdict = result.get("verdict", "skip")
+                score = result.get("score", 0)
                 db.add(JobScore(
                     listing_id=sl.raw["_db_id"],
                     user_id=user_id,
-                    score=result.get("score", 0),
-                    verdict=result.get("verdict", "skip"),
+                    score=score,
+                    verdict=verdict,
                     reason=result.get("reason", ""),
                 ))
-                if result.get("verdict") == "apply":
+                if verdict in ("apply", "consider"):
                     matches += 1
+                    notify_matches.append({
+                        "title": sl.title,
+                        "company": sl.company,
+                        "score": round(score),
+                        "verdict": verdict,
+                        "url": sl.url,
+                    })
                 db.commit()
                 await asyncio.sleep(0.3)
 
@@ -203,6 +213,11 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
         run.cost_usd = _compute_cost(usage)
         run.status = "completed"
         _log(db, run_id, f"Done — {total_apply} total matches · {inp:,} in / {out:,} out tokens · ${run.cost_usd:.4f}")
+
+        if notify_matches:
+            from notify import notify_new_matches
+            notify_matches_sorted = sorted(notify_matches, key=lambda x: x["score"], reverse=True)
+            await notify_new_matches(user_id, notify_matches_sorted, db)
 
     except Exception as e:
         print(f"[score run {run_id}] fatal: {e}")

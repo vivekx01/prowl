@@ -77,6 +77,43 @@ def upsert_setting(
     return setting
 
 
+@router.post("/settings/test-notification")
+async def test_notification(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    import config, httpx
+    if not config.NEXUS_NOTIFY_URL or not config.NEXUS_API_KEY:
+        raise HTTPException(503, "Nexus notify URL or API key not configured on the server")
+
+    row = db.query(Setting).filter_by(user_id=user.id, key="telegram_chat_id").first()
+    if not row or not row.value.strip():
+        raise HTTPException(400, "No Telegram Chat ID saved — save it first")
+
+    payload = {
+        "event": "new_matches",
+        "chat_id": row.value.strip(),
+        "count": 2,
+        "jobs": [
+            {"title": "Principal Engineer", "company": "Acme Corp", "score": 97, "verdict": "apply", "url": ""},
+            {"title": "Staff Backend Engineer", "company": "Globex", "score": 91, "verdict": "consider", "url": ""},
+        ],
+        "link": config.PROWL_URL,
+    }
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            r = await client.post(
+                config.NEXUS_NOTIFY_URL,
+                json=payload,
+                headers={"X-Api-Key": config.NEXUS_API_KEY},
+            )
+            if r.status_code >= 400:
+                raise HTTPException(502, f"Nexus returned {r.status_code}: {r.text}")
+        except httpx.RequestError as e:
+            raise HTTPException(502, f"Could not reach Nexus: {e}")
+    return {"ok": True}
+
+
 @router.post("/score-jd", response_model=CheckJDResult)
 async def score_jd(
     body: CheckJDRequest,
