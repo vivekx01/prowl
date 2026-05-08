@@ -460,7 +460,10 @@ const PLATFORM_FIELDS: Record<string, FieldDef[]> = {
     { key: "slug", label: "Lever company slug", placeholder: "h1", required: true, hint: "The slug from jobs.lever.co/<slug>" },
   ],
   oracle_hcm: [
-    { key: "url", label: "Careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", required: true, hint: "Any URL from the company's Oracle HCM portal — domain and site number are auto-detected" },
+    { key: "url", label: "Careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", required: true, hint: "Any URL from the Oracle HCM portal — domain and site number are auto-detected" },
+  ],
+  oracle_hcm_edit: [
+    { key: "url", label: "New careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", hint: "Leave blank to keep existing config. Paste a new URL to re-resolve." },
   ],
 };
 
@@ -482,6 +485,7 @@ function CompanyForm({
   onSubmit,
   isPending,
   submitLabel,
+  fieldsKey,
 }: {
   form: Record<string, string>;
   platforms: string[];
@@ -490,8 +494,9 @@ function CompanyForm({
   onSubmit: () => void;
   isPending: boolean;
   submitLabel: string;
+  fieldsKey?: string;
 }) {
-  const fields = getFields(form.platform);
+  const fields = getFields(fieldsKey ?? form.platform);
   const requiredKey = fields.find(f => f.required)?.key;
   const valid = form.name.trim() && (!requiredKey || form[requiredKey]?.trim());
 
@@ -653,10 +658,11 @@ function EditCompanyModal({
   platforms: string[];
 }) {
   const qc = useQueryClient();
+  const isOracle = company.platform === "oracle_hcm";
   const [form, setForm] = useState<Record<string, string>>({
     name: company.name,
     platform: company.platform,
-    ...(company.config ?? {}),
+    ...(isOracle ? {} : (company.config ?? {})),
   });
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
@@ -670,6 +676,13 @@ function EditCompanyModal({
 
   return (
     <Modal open onClose={onClose} title={`Edit · ${company.name}`} width="max-w-xl">
+      {isOracle && (
+        <div className="mb-4 rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-xs text-slate-400 font-mono space-y-1">
+          <div><span className="text-slate-500">domain</span> · {(company.config as any)?.domain}</div>
+          <div><span className="text-slate-500">site</span> · {(company.config as any)?.site_number}</div>
+          <div><span className="text-slate-500">india_facet_id</span> · {String((company.config as any)?.india_facet_id ?? "none")}</div>
+        </div>
+      )}
       <CompanyForm
         form={form}
         platforms={platforms}
@@ -678,6 +691,7 @@ function EditCompanyModal({
         onSubmit={() => update.mutate()}
         isPending={update.isPending}
         submitLabel="Save changes"
+        fieldsKey={isOracle ? "oracle_hcm_edit" : undefined}
       />
     </Modal>
   );

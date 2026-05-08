@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from api.deps import get_admin_user, get_current_user
 from db.database import get_db
-from db.models import Company, JobListing, User
+from db.models import Application, Company, JobListing, JobScore, User
 from api.schemas import CompanyCreate, CompanyOut, CompanyUpdate, BulkImportRequest, BulkImportResult, CompanyCreateResult
 
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -83,7 +83,7 @@ def bulk_import(
 
 
 @router.patch("/{company_id}", response_model=CompanyOut)
-def update_company(
+async def update_company(
     company_id: int,
     body: CompanyUpdate,
     _: User = Depends(get_admin_user),
@@ -92,7 +92,23 @@ def update_company(
     company = db.get(Company, company_id)
     if not company:
         raise HTTPException(404, "Company not found")
-    for field, val in body.model_dump(exclude_none=True).items():
+
+    data = body.model_dump(exclude_none=True)
+
+    # Re-resolve oracle_hcm config if a new url is provided
+    if data.get("platform", company.platform) == "oracle_hcm":
+        new_url = (data.get("config") or {}).pop("url", None)
+        if new_url:
+            from scrapers.oracle_hcm import resolve_config
+            try:
+                resolved, _ = await resolve_config(new_url)
+                data["config"] = resolved
+            except ValueError as e:
+                raise HTTPException(400, str(e))
+        elif "config" in data and not data["config"]:
+            data.pop("config")
+
+    for field, val in data.items():
         setattr(company, field, val)
     db.commit()
     db.refresh(company)
@@ -108,5 +124,12 @@ def delete_company(
     company = db.get(Company, company_id)
     if not company:
         raise HTTPException(404, "Company not found")
+
+    listing_ids = [l.id for l in db.query(JobListing.id).filter_by(company_id=company_id).all()]
+    if listing_ids:
+        db.query(Application).filter(Application.listing_id.in_(listing_ids)).delete(synchronize_session=False)
+        db.query(JobScore).filter(JobScore.listing_id.in_(listing_ids)).delete(synchronize_session=False)
+        db.query(JobListing).filter(JobListing.company_id == company_id).delete(synchronize_session=False)
+
     db.delete(company)
     db.commit()
