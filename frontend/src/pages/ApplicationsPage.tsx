@@ -82,7 +82,7 @@ function JobCard({ job }: { job: Job }) {
       job.application
         ? api.patch(`/applications/${job.application!.id}`, { status }).then(r => r.data)
         : api.post("/applications", { listing_id: job.id, status }).then(r => r.data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs"] }); setMenuOpen(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs", "applied"] }); setMenuOpen(false); },
   });
 
   const tier = job.score ? scoreTier(job.score.score) : null;
@@ -194,12 +194,10 @@ function JobCard({ job }: { job: Job }) {
 export default function ApplicationsPage() {
   const [tab, setTab] = useState<TabKey>("applied");
 
-  const { data: rawJobs = [], isLoading } = useQuery<Job[]>({
-    queryKey: ["jobs"],
-    queryFn: () => api.get("/jobs").then(r => r.data),
+  const { data: tracked = [], isLoading } = useQuery<Job[]>({
+    queryKey: ["jobs", "applied"],
+    queryFn: () => api.get("/jobs?has_application=true").then(r => r.data),
   });
-
-  const tracked = rawJobs.filter(j => j.application != null);
   const displayed = tab === "all"
     ? tracked
     : tracked.filter(j => j.application?.status === tab);

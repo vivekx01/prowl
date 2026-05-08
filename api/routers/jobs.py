@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from api.deps import get_current_user
 from db.database import get_db
@@ -28,24 +28,31 @@ def list_jobs(
     company_id: Optional[int] = Query(None),
     score_min: Optional[float] = Query(None),
     unscored: bool = Query(False),
+    has_application: bool = Query(False),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     q = (
         db.query(JobListing)
         .options(
-            joinedload(JobListing.company),
-            joinedload(JobListing.scores),
-            joinedload(JobListing.applications),
+            joinedload(JobListing.company),      # 1-to-1: join is fine
+            selectinload(JobListing.scores),     # 1-to-many: avoids Cartesian with applications
+            selectinload(JobListing.applications),
         )
         .order_by(JobListing.first_seen_at.desc())
     )
+
+    if has_application:
+        # Inner join filters to only listings this user has tracked
+        q = q.join(
+            Application,
+            (Application.listing_id == JobListing.id) & (Application.user_id == user.id),
+        )
 
     if company_id:
         q = q.filter(JobListing.company_id == company_id)
 
     if unscored:
-        # No score row for this user
         scored_ids = db.query(JobScore.listing_id).filter(JobScore.user_id == user.id)
         q = q.filter(~JobListing.id.in_(scored_ids))
     elif verdict:
@@ -70,8 +77,8 @@ def get_job(
         db.query(JobListing)
         .options(
             joinedload(JobListing.company),
-            joinedload(JobListing.scores),
-            joinedload(JobListing.applications),
+            selectinload(JobListing.scores),
+            selectinload(JobListing.applications),
         )
         .filter(JobListing.id == job_id)
         .first()
