@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from api.deps import get_admin_user, get_current_user
 from db.database import get_db
 from db.models import Company, JobListing, User
-from api.schemas import CompanyCreate, CompanyOut, CompanyUpdate, BulkImportRequest, BulkImportResult
+from api.schemas import CompanyCreate, CompanyOut, CompanyUpdate, BulkImportRequest, BulkImportResult, CompanyCreateResult
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -35,19 +35,31 @@ def list_companies(
     return result
 
 
-@router.post("", response_model=CompanyOut, status_code=201)
-def create_company(
+@router.post("", response_model=CompanyCreateResult, status_code=201)
+async def create_company(
     body: CompanyCreate,
     _: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
     if db.query(Company).filter_by(name=body.name).first():
         raise HTTPException(400, f"Company '{body.name}' already exists")
-    company = Company(**body.model_dump())
+
+    data = body.model_dump()
+    warning = None
+
+    if data["platform"] == "oracle_hcm" and "url" in data.get("config", {}):
+        from scrapers.oracle_hcm import resolve_config
+        try:
+            resolved, warning = await resolve_config(data["config"]["url"])
+            data["config"] = resolved
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+    company = Company(**data)
     db.add(company)
     db.commit()
     db.refresh(company)
-    return company
+    return CompanyCreateResult(company=CompanyOut.model_validate(company), warning=warning)
 
 
 @router.post("/bulk", response_model=BulkImportResult)

@@ -25,6 +25,11 @@ class CompanyUpdate(BaseModel):
     config: Optional[dict] = None
 
 
+class CompanyCreateResult(BaseModel):
+    company: "CompanyOut"
+    warning: Optional[str] = None
+
+
 class CompanyOut(CompanyBase):
     id: int
     created_at: datetime

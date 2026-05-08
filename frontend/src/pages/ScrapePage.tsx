@@ -270,7 +270,7 @@ function CompanySelector({
                   className="accent-violet-500 w-4 h-4 shrink-0"
                 />
                 <span className="text-sm text-slate-300 truncate">{c.name}</span>
-                <span className="ml-auto text-xs text-slate-600 shrink-0 capitalize">{c.platform}</span>
+                <span className="ml-auto text-xs text-slate-600 shrink-0">{PLATFORM_LABELS[c.platform] ?? c.platform}</span>
               </label>
             ))}
             {filtered.length === 0 && (
@@ -500,6 +500,13 @@ function RunCard({
 // Main page
 // ---------------------------------------------------------------------------
 
+const PLATFORM_LABELS: Record<string, string> = {
+  workday:    "Workday",
+  greenhouse: "Greenhouse",
+  lever:      "Lever",
+  oracle_hcm: "Oracle HCM",
+};
+
 export default function ScrapePage() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -507,6 +514,11 @@ export default function ScrapePage() {
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["companies"],
     queryFn: () => api.get("/companies").then(r => r.data),
+  });
+
+  const { data: platforms = [] } = useQuery<string[]>({
+    queryKey: ["platforms"],
+    queryFn: () => api.get("/companies/platforms").then(r => r.data),
   });
 
   const { data: runs = [] } = useQuery<ScrapeRun[]>({
@@ -555,6 +567,39 @@ export default function ScrapePage() {
 
       {/* Manual trigger */}
       <div className="card p-5 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-slate-500 uppercase tracking-widest">Filter by portal</label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelected(new Set())}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                selected.size === 0
+                  ? "bg-violet-600 border-violet-500 text-white"
+                  : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600"
+              }`}
+            >
+              All
+            </button>
+            {platforms.map(p => {
+              const ids = activeOnly.filter(c => c.platform === p).map(c => c.id);
+              const isActive = ids.length > 0 && ids.every(id => selected.has(id)) && selected.size === ids.length;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setSelected(new Set(ids))}
+                  disabled={ids.length === 0}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                    isActive
+                      ? "bg-violet-600 border-violet-500 text-white"
+                      : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                  }`}
+                >
+                  {PLATFORM_LABELS[p] ?? p} ({ids.length})
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-slate-500 uppercase tracking-widest">Companies</label>
           <CompanySelector companies={activeOnly} selected={selected} onChange={setSelected} />

@@ -12,6 +12,7 @@ const PLATFORM_COLORS: Record<string, { bg: string; text: string; dot: string }>
   linkedin:   { bg: "bg-sky-500/10",    text: "text-sky-400",    dot: "bg-sky-500" },
   naukri:     { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-500" },
   greenhouse: { bg: "bg-green-500/10",  text: "text-green-400",  dot: "bg-green-500" },
+  oracle_hcm: { bg: "bg-red-500/10",    text: "text-red-400",    dot: "bg-red-500" },
   lever:      { bg: "bg-rose-500/10",   text: "text-rose-400",   dot: "bg-rose-500" },
 };
 
@@ -20,6 +21,8 @@ function getDisplayUrl(platform: string, config: Record<string, unknown>): strin
     return `https://boards-api.greenhouse.io/v1/boards/${config.slug}/jobs`;
   if (platform === "lever" && config.slug)
     return `https://api.lever.co/v0/postings/${config.slug}?mode=json`;
+  if (platform === "oracle_hcm" && config.domain && config.site_number)
+    return `https://${config.domain}/hcmUI/CandidateExperience/en/sites/${config.site_number}/jobs`;
   return String(config.listing_endpoint ?? Object.values(config)[0] ?? "");
 }
 
@@ -28,7 +31,7 @@ function PlatformBadge({ platform }: { platform: string }) {
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {platform}
+      {platformLabel(platform)}
     </span>
   );
 }
@@ -432,6 +435,17 @@ interface FieldDef {
   hint?: string;
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+  workday:    "Workday",
+  greenhouse: "Greenhouse",
+  lever:      "Lever",
+  oracle_hcm: "Oracle HCM",
+};
+
+function platformLabel(p: string): string {
+  return PLATFORM_LABELS[p] ?? p.charAt(0).toUpperCase() + p.slice(1);
+}
+
 const PLATFORM_FIELDS: Record<string, FieldDef[]> = {
   workday: [
     { key: "listing_endpoint", label: "Listing API endpoint", placeholder: "https://company.wd1.myworkdayjobs.com/wday/cxs/…/jobs", required: true },
@@ -444,6 +458,9 @@ const PLATFORM_FIELDS: Record<string, FieldDef[]> = {
   ],
   lever: [
     { key: "slug", label: "Lever company slug", placeholder: "h1", required: true, hint: "The slug from jobs.lever.co/<slug>" },
+  ],
+  oracle_hcm: [
+    { key: "url", label: "Careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", required: true, hint: "Any URL from the company's Oracle HCM portal — domain and site number are auto-detected" },
   ],
 };
 
@@ -499,7 +516,7 @@ function CompanyForm({
             className="input appearance-none cursor-pointer"
           >
             {platforms.map(p => (
-              <option key={p} value={p} className="bg-slate-900 capitalize">{p}</option>
+              <option key={p} value={p} className="bg-slate-900">{platformLabel(p)}</option>
             ))}
           </select>
         </div>
@@ -573,26 +590,51 @@ function AddCompanyModal({
   const [form, setForm] = useState({ ...EMPTY });
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
+  const [warning, setWarning] = useState<string | null>(null);
+
   const create = useMutation({
     mutationFn: () => api.post("/companies", buildPayload(form)).then(r => r.data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["companies"] });
-      setForm({ ...EMPTY });
-      onClose();
+      if (data?.warning) {
+        setWarning(data.warning);
+        setForm({ ...EMPTY });
+      } else {
+        setForm({ ...EMPTY });
+        onClose();
+      }
     },
   });
 
+  function handleClose() {
+    setWarning(null);
+    onClose();
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Add company" width="max-w-xl">
-      <CompanyForm
-        form={form}
-        platforms={platforms}
-        set={set}
-        onCancel={onClose}
-        onSubmit={() => create.mutate()}
-        isPending={create.isPending}
-        submitLabel="Add company"
-      />
+    <Modal open={open} onClose={handleClose} title="Add company" width="max-w-xl">
+      {warning ? (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-4 text-sm text-yellow-300">
+            <span className="font-semibold">Warning: </span>{warning}
+          </div>
+          <div className="flex justify-end">
+            <button onClick={handleClose} className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm text-white">
+              Got it
+            </button>
+          </div>
+        </div>
+      ) : (
+        <CompanyForm
+          form={form}
+          platforms={platforms}
+          set={set}
+          onCancel={handleClose}
+          onSubmit={() => create.mutate()}
+          isPending={create.isPending}
+          submitLabel="Add company"
+        />
+      )}
     </Modal>
   );
 }
