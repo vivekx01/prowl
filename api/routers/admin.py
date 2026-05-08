@@ -281,19 +281,23 @@ def _next_scrape(cron: str) -> str | None:
 
 class ScheduleOut(BaseModel):
     scrape_cron: str
+    scrape_times: list[str] = []
     next_scrape_at: str | None = None
 
 
 class ScheduleUpdate(BaseModel):
-    scrape_cron: str
+    scrape_cron: str = ""
+    scrape_times: list[str] = []
 
 
 class UserScheduleOut(BaseModel):
     score_times: list[str]
+    align_with_scraping: bool = False
 
 
 class UserScheduleUpdate(BaseModel):
     score_times: list[str]
+    align_with_scraping: bool = False
 
 
 def _validate_times(times: list[str]) -> None:
@@ -325,12 +329,14 @@ def get_schedule(
     _: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
-    row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_schedule").first()
-    value = row.value if row else ""
+    cron_row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_schedule").first()
+    value = cron_row.value if cron_row else ""
     # Migrate: old format was a JSON array e.g. "[]" or "[\"06:00\"]"
     if value.startswith("["):
         value = ""
-    return ScheduleOut(scrape_cron=value, next_scrape_at=_next_scrape(value))
+    times_row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_times").first()
+    times = json.loads(times_row.value) if times_row else []
+    return ScheduleOut(scrape_cron=value, scrape_times=times, next_scrape_at=_next_scrape(value))
 
 
 @router.put("/schedule", response_model=ScheduleOut)
@@ -347,13 +353,23 @@ def update_schedule(
                 raise ValueError
         except (ValueError, Exception):
             raise HTTPException(400, f"Invalid cron expression: {cron!r}")
-    row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_schedule").first()
-    if row:
-        row.value = cron
+    _validate_times(body.scrape_times)
+
+    cron_row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_schedule").first()
+    if cron_row:
+        cron_row.value = cron
     else:
         db.add(Setting(user_id=None, key="scrape_schedule", value=cron))
+
+    times_row = db.query(Setting).filter(Setting.user_id == None, Setting.key == "scrape_times").first()
+    times_json = json.dumps(body.scrape_times)
+    if times_row:
+        times_row.value = times_json
+    else:
+        db.add(Setting(user_id=None, key="scrape_times", value=times_json))
+
     db.commit()
-    return ScheduleOut(scrape_cron=cron, next_scrape_at=_next_scrape(cron))
+    return ScheduleOut(scrape_cron=cron, scrape_times=body.scrape_times, next_scrape_at=_next_scrape(cron))
 
 
 @router.get("/users/{user_id}/score-schedule", response_model=UserScheduleOut)
@@ -364,7 +380,9 @@ def get_user_score_schedule(
 ):
     if not db.get(User, user_id):
         raise HTTPException(404, "User not found")
-    return UserScheduleOut(score_times=_get_times(db, user_id, "score_schedule"))
+    align_row = db.query(Setting).filter(Setting.user_id == user_id, Setting.key == "score_align_with_scraping").first()
+    align = align_row.value == "true" if align_row else False
+    return UserScheduleOut(score_times=_get_times(db, user_id, "score_schedule"), align_with_scraping=align)
 
 
 @router.put("/users/{user_id}/score-schedule", response_model=UserScheduleOut)
@@ -377,4 +395,11 @@ def update_user_score_schedule(
     if not db.get(User, user_id):
         raise HTTPException(404, "User not found")
     _set_times(db, user_id, "score_schedule", body.score_times)
-    return UserScheduleOut(score_times=body.score_times)
+    align_row = db.query(Setting).filter(Setting.user_id == user_id, Setting.key == "score_align_with_scraping").first()
+    align_val = "true" if body.align_with_scraping else "false"
+    if align_row:
+        align_row.value = align_val
+    else:
+        db.add(Setting(user_id=user_id, key="score_align_with_scraping", value=align_val))
+    db.commit()
+    return UserScheduleOut(score_times=body.score_times, align_with_scraping=body.align_with_scraping)

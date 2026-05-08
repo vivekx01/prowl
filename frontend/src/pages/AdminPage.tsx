@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api, { type AdminScoreRun } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { IconScan } from "../components/Icons";
+import { ISTTimePicker, utcToIst } from "../components/ISTTimePicker";
 import cronstrue from "cronstrue";
 
 // ---------------------------------------------------------------------------
@@ -29,53 +30,99 @@ function cronDescription(expr: string): { text: string; error: boolean } {
   }
 }
 
+type ScrapeMode = "interval" | "times";
+
 function ScheduleCard() {
   const qc = useQueryClient();
 
-  const { data: schedule, isLoading } = useQuery<{ scrape_cron: string }>({
+  const { data: schedule, isLoading } = useQuery<{ scrape_cron: string; scrape_times: string[] }>({
     queryKey: ["admin-schedule"],
     queryFn: () => api.get("/admin/schedule").then((r) => r.data),
   });
 
   const DEFAULT_CRON = "0 */6 * * *";
-  const [draft, setDraft] = useState<string | null>(null);
   const active_cron = schedule?.scrape_cron ?? "";
-  const editing = draft !== null ? draft : (active_cron || DEFAULT_CRON);
-  const desc = cronDescription(editing);
+  const active_times = schedule?.scrape_times ?? [];
+
+  // Derive mode from which setting is populated; default to interval
+  const savedMode: ScrapeMode = active_times.length > 0 ? "times" : "interval";
+  const [localMode, setLocalMode] = useState<ScrapeMode | null>(null);
+  const mode: ScrapeMode = localMode ?? savedMode;
+
+  const [draftCron, setDraftCron] = useState<string | null>(null);
+  const editingCron = draftCron !== null ? draftCron : (active_cron || DEFAULT_CRON);
+  const desc = cronDescription(editingCron);
 
   const save = useMutation({
-    mutationFn: (scrape_cron: string) =>
-      api.put("/admin/schedule", { scrape_cron }).then((r) => r.data),
+    mutationFn: (body: { scrape_cron: string; scrape_times: string[] }) =>
+      api.put("/admin/schedule", body).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-schedule"] });
-      setDraft(null);
+      setDraftCron(null);
+      setLocalMode(null);
     },
   });
 
-  const isDirty = editing !== active_cron && !desc.error;
+  function switchMode(next: ScrapeMode) {
+    setLocalMode(next);
+    if (next === "times") setDraftCron("");
+  }
+
+  function saveCron() {
+    save.mutate({ scrape_cron: editingCron, scrape_times: [] });
+  }
+
+  function addTime(utcTime: string) {
+    const next = [...new Set([...active_times, utcTime])].sort();
+    save.mutate({ scrape_cron: "", scrape_times: next });
+  }
+
+  function removeTime(t: string) {
+    save.mutate({ scrape_cron: "", scrape_times: active_times.filter((x) => x !== t) });
+  }
+
+  const isCronDirty = editingCron !== active_cron && !desc.error;
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4 space-y-4">
       {/* Header */}
-      <div>
-        <h2 className="text-sm font-semibold text-slate-200">Scrape Schedule</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Global — scrapes all companies on this interval. Per-user score schedules are on each user's page.
-        </p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-200">Scrape Schedule</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Global — scrapes all companies. Per-user score schedules are on each user's page.
+          </p>
+        </div>
+        {/* Mode toggle */}
+        <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 shrink-0">
+          {(["interval", "times"] as ScrapeMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => switchMode(m)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
+                mode === m
+                  ? "bg-slate-700 text-slate-100"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              {m === "interval" ? "Interval" : "Specific times"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (
         <p className="text-xs text-slate-600">Loading…</p>
-      ) : (
+      ) : mode === "interval" ? (
         <div className="space-y-4">
           {/* Presets */}
           <div className="flex flex-wrap gap-2">
             {SCRAPE_PRESETS.map((p) => (
               <button
                 key={p.cron}
-                onClick={() => setDraft(p.cron)}
+                onClick={() => setDraftCron(p.cron)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                  editing === p.cron
+                  editingCron === p.cron
                     ? "bg-violet-600 border-violet-500 text-white"
                     : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600"
                 }`}
@@ -93,22 +140,22 @@ function ScheduleCard() {
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                value={editing}
-                onChange={(e) => setDraft(e.target.value)}
+                value={editingCron}
+                onChange={(e) => setDraftCron(e.target.value)}
                 placeholder="e.g. */30 * * * *"
                 spellCheck={false}
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-500 transition-colors"
               />
               <button
-                onClick={() => save.mutate(editing)}
-                disabled={save.isPending || desc.error || !isDirty}
+                onClick={saveCron}
+                disabled={save.isPending || desc.error || !isCronDirty}
                 className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition-colors shrink-0"
               >
                 {save.isPending ? "Saving…" : "Save"}
               </button>
               {active_cron && (
                 <button
-                  onClick={() => { setDraft(""); save.mutate(""); }}
+                  onClick={() => { setDraftCron(""); save.mutate({ scrape_cron: "", scrape_times: [] }); }}
                   disabled={save.isPending}
                   className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 text-slate-400 text-xs font-medium rounded-lg transition-colors shrink-0"
                 >
@@ -119,10 +166,35 @@ function ScheduleCard() {
 
             {/* Human-readable description */}
             <p className={`text-xs flex items-center gap-1.5 ${desc.error ? "text-red-400" : "text-slate-400"}`}>
-              <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${desc.error ? "bg-red-400" : editing ? "bg-emerald-400" : "bg-slate-600"}`} />
+              <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${desc.error ? "bg-red-400" : editingCron ? "bg-emerald-400" : "bg-slate-600"}`} />
               {desc.text}
             </p>
           </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Time chips */}
+          <div className="flex flex-wrap gap-2 min-h-[28px]">
+            {active_times.length === 0 ? (
+              <span className="text-xs text-slate-600 italic">No times set — runs manually only</span>
+            ) : (
+              active_times.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-medium rounded-lg px-3 py-1.5"
+                >
+                  {utcToIst(t)}
+                  <button
+                    onClick={() => removeTime(t)}
+                    className="text-slate-500 hover:text-red-400 transition-colors leading-none"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+          <ISTTimePicker onAdd={addTime} disabled={save.isPending} />
         </div>
       )}
     </div>

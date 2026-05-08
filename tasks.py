@@ -89,8 +89,10 @@ def check_schedule_task():
             return row.value if row else None
 
         scrape_cron = _get_setting("scrape_schedule")
+        scrape_times_raw = _get_setting("scrape_times")
+        scrape_times = json.loads(scrape_times_raw) if scrape_times_raw else []
 
-        if _cron_fires_now(scrape_cron):
+        if _cron_fires_now(scrape_cron) or _slot_fires_now(scrape_times):
             active = db.query(ScrapeRun).filter(ScrapeRun.status.in_(["pending", "running"])).first()
             if not active:
                 run = ScrapeRun(status="pending", company_ids=None, completed_company_ids="[]")

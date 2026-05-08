@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 import config
 from config import now_ist
 from db.database import SessionLocal
-from db.models import Company, JobListing, JobScore, Profile, ScrapeRun, ScrapeRunLog
+from db.models import Company, JobListing, JobScore, Profile, ScoreRun, ScrapeRun, ScrapeRunLog, Setting, User
 from scrapers import get_scraper
 
 
@@ -250,6 +250,12 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
 
         log(f"\n{'='*40}\nDone — {total_new} new listings stored")
 
+        if run.status == "completed":
+            try:
+                _trigger_aligned_scoring(db)
+            except Exception as e:
+                print(f"[align] error triggering aligned scoring: {e}")
+
 
 def _mark_company_done(
     db: Session, run: ScrapeRun, company_id: int, completed_ids: set[int]
@@ -258,3 +264,36 @@ def _mark_company_done(
     run.completed_company_ids = json.dumps(list(completed_ids))
     run.companies_done = len(completed_ids)
     db.commit()
+
+
+def _trigger_aligned_scoring(db: Session) -> None:
+    """Start a score run for every active user with score_align_with_scraping=true."""
+    from tasks import score_task
+
+    users = (
+        db.query(User)
+        .join(Profile, Profile.user_id == User.id)
+        .filter(User.is_active == True)
+        .all()
+    )
+    for user in users:
+        align_row = db.query(Setting).filter(
+            Setting.user_id == user.id,
+            Setting.key == "score_align_with_scraping",
+        ).first()
+        if not align_row or align_row.value != "true":
+            continue
+        active = db.query(ScoreRun).filter(
+            ScoreRun.user_id == user.id,
+            ScoreRun.status.in_(["pending", "running"]),
+        ).first()
+        if active:
+            continue
+        run = ScoreRun(user_id=user.id, status="pending", days_back=None)
+        db.add(run)
+        db.commit()
+        db.refresh(run)
+        task = score_task.delay(run.id, user.id, None)
+        run.celery_task_id = task.id
+        db.commit()
+        print(f"[align] triggered scoring for user {user.id} after scrape completion")

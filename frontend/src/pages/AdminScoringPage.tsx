@@ -5,6 +5,22 @@ import api, { type Company, type AdminScoreRun } from "../api/client";
 import { IconChevronDown } from "../components/Icons";
 import { ISTTimePicker, utcToIst } from "../components/ISTTimePicker";
 
+function Toggle({
+  enabled, disabled, onChange,
+}: {
+  enabled: boolean; disabled: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={() => onChange(!enabled)}
+      className={`relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none ${enabled ? "bg-violet-600" : "bg-slate-700"} ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${enabled ? "translate-x-4" : "translate-x-0"}`} />
+    </button>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Company multi-select
 // ---------------------------------------------------------------------------
@@ -323,26 +339,31 @@ function RunCard({ r, onStop }: { r: AdminScoreRun; onStop: () => void }) {
 function UserScoreSchedule({ userId }: { userId: string }) {
   const qc = useQueryClient();
 
-  const { data, isLoading } = useQuery<{ score_times: string[] }>({
+  const { data, isLoading } = useQuery<{ score_times: string[]; align_with_scraping: boolean }>({
     queryKey: ["user-score-schedule", userId],
     queryFn: () => api.get(`/admin/users/${userId}/score-schedule`).then((r) => r.data),
   });
 
   const save = useMutation({
-    mutationFn: (score_times: string[]) =>
-      api.put(`/admin/users/${userId}/score-schedule`, { score_times }).then((r) => r.data),
+    mutationFn: (body: { score_times: string[]; align_with_scraping: boolean }) =>
+      api.put(`/admin/users/${userId}/score-schedule`, body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["user-score-schedule", userId] }),
   });
 
   const times = data?.score_times ?? [];
+  const alignWithScraping = data?.align_with_scraping ?? false;
 
   function addTime(utcTime: string) {
     const next = [...new Set([...times, utcTime])].sort();
-    save.mutate(next);
+    save.mutate({ score_times: next, align_with_scraping: alignWithScraping });
   }
 
   function removeTime(t: string) {
-    save.mutate(times.filter((x) => x !== t));
+    save.mutate({ score_times: times.filter((x) => x !== t), align_with_scraping: alignWithScraping });
+  }
+
+  function toggleAlign(v: boolean) {
+    save.mutate({ score_times: times, align_with_scraping: v });
   }
 
   return (
@@ -360,31 +381,42 @@ function UserScoreSchedule({ userId }: { userId: string }) {
       {isLoading ? (
         <p className="text-xs text-slate-600">Loading…</p>
       ) : (
-        <div className="space-y-3">
-          {/* Time chips */}
-          <div className="flex flex-wrap gap-2 min-h-[28px]">
-            {times.length === 0 ? (
-              <span className="text-xs text-slate-600 italic">No times set — runs manually only</span>
-            ) : (
-              times.map((t) => (
-                <span
-                  key={t}
-                  className="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-medium rounded-lg px-3 py-1.5"
-                >
-                  {utcToIst(t)}
-                  <button
-                    onClick={() => removeTime(t)}
-                    className="text-slate-500 hover:text-red-400 transition-colors leading-none"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))
-            )}
+        <div className="space-y-4">
+          {/* Align with scraping */}
+          <div className="flex items-center justify-between gap-4 px-3 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-lg">
+            <div>
+              <p className="text-xs font-medium text-slate-300">Align with scraping</p>
+              <p className="text-xs text-slate-500 mt-0.5">Score automatically after each scrape run completes.</p>
+            </div>
+            <Toggle enabled={alignWithScraping} disabled={save.isPending} onChange={toggleAlign} />
           </div>
 
-          {/* Picker */}
-          <ISTTimePicker onAdd={addTime} disabled={save.isPending} />
+          <div className="space-y-3">
+            {/* Time chips */}
+            <div className="flex flex-wrap gap-2 min-h-[28px]">
+              {times.length === 0 ? (
+                <span className="text-xs text-slate-600 italic">No times set — runs manually only</span>
+              ) : (
+                times.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-medium rounded-lg px-3 py-1.5"
+                  >
+                    {utcToIst(t)}
+                    <button
+                      onClick={() => removeTime(t)}
+                      className="text-slate-500 hover:text-red-400 transition-colors leading-none"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+
+            {/* Picker */}
+            <ISTTimePicker onAdd={addTime} disabled={save.isPending} />
+          </div>
         </div>
       )}
     </div>
