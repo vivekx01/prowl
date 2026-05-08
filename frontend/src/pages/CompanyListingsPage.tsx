@@ -246,8 +246,8 @@ export default function CompanyListingsPage() {
                   className="px-3 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4 hover:bg-slate-800/30 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-slate-200 font-medium leading-snug truncate">{l.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    <p className="text-sm text-slate-200 font-medium leading-snug line-clamp-2 sm:line-clamp-1">{l.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 sm:line-clamp-1">
                       {l.location || "—"}
                       {l.department ? ` · ${l.department}` : ""}
                       {l.posted_on ? ` · ${l.posted_on}` : ""}

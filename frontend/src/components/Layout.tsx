@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { type ReactNode, type ComponentType, useState } from "react";
 import {
   IconJobs, IconScrape, IconCompanies, IconInsights,
-  IconApplications, IconCheckJD, IconScan, IconLogout, IconUsers,
+  IconApplications, IconCheckJD, IconScan, IconLogout, IconUsers, IconChart,
 } from "./Icons";
 import { useAuth } from "../context/AuthContext";
 
@@ -16,23 +16,25 @@ const userNav = [
 ];
 
 const adminNav = [
-  { to: "/scrape", label: "Scrape", icon: IconScrape },
-  { to: "/companies", label: "Companies", icon: IconCompanies },
-  { to: "/admin", label: "Users", icon: IconUsers },
+  { to: "/scrape",            label: "Scrape",    icon: IconScrape },
+  { to: "/companies",         label: "Companies", icon: IconCompanies },
+  { to: "/admin",             label: "Users",     icon: IconUsers,  end: true },
+  { to: "/admin/analytics",   label: "Analytics", icon: IconChart,  end: true },
 ];
 
 function NavItem({
-  to, label, icon: Icon, onClick,
+  to, label, icon: Icon, onClick, end,
 }: {
   to: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
   onClick?: () => void;
+  end?: boolean;
 }) {
   return (
     <NavLink
       to={to}
-      end={to === "/"}
+      end={end ?? to === "/"}
       onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${

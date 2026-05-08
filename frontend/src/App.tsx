@@ -14,6 +14,7 @@ import ScanPage from "./pages/ScanPage";
 import CompanyListingsPage from "./pages/CompanyListingsPage";
 import AdminPage from "./pages/AdminPage";
 import AdminScoringPage from "./pages/AdminScoringPage";
+import AdminAnalyticsPage from "./pages/AdminAnalyticsPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { token } = useAuth();
@@ -56,6 +57,7 @@ export default function App() {
                 <Route path="/companies" element={<RequireAdmin><CompaniesPage /></RequireAdmin>} />
                 <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
                 <Route path="/admin/scoring/:userId" element={<RequireAdmin><AdminScoringPage /></RequireAdmin>} />
+                <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalyticsPage /></RequireAdmin>} />
               </Routes>
             </Layout>
           </RequireAuth>

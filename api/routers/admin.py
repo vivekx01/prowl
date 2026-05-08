@@ -1,4 +1,6 @@
 import json
+from collections import defaultdict
+from datetime import timedelta
 
 import config as cfg
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -428,3 +430,116 @@ def update_user_score_schedule(
         db.add(Setting(user_id=user_id, key="score_align_with_scraping", value=align_val))
     db.commit()
     return UserScheduleOut(score_times=body.score_times, align_with_scraping=body.align_with_scraping)
+
+
+# ---------------------------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------------------------
+
+@router.get("/analytics")
+def get_analytics(
+    days: int = Query(30, ge=1, le=365),
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    from datetime import date as date_type
+
+    cutoff = cfg.now_ist() - timedelta(days=days)
+    runs = (
+        db.query(ScoreRun)
+        .filter(ScoreRun.started_at >= cutoff)
+        .order_by(ScoreRun.started_at)
+        .all()
+    )
+    completed = [r for r in runs if r.status == "completed"]
+
+    # Per-run cost breakdown
+    def _costs(r: ScoreRun):
+        return _stage_costs(r)
+
+    # Daily aggregation
+    daily_map: dict = defaultdict(lambda: {
+        "cost_usd": 0.0, "filter_cost_usd": 0.0, "score_cost_usd": 0.0,
+        "input_tokens": 0, "filter_input_tokens": 0, "score_input_tokens": 0,
+        "output_tokens": 0, "runs": 0, "matches": 0,
+    })
+    for r in runs:
+        day = r.started_at.date().isoformat()
+        d = daily_map[day]
+        d["runs"] += 1
+        if r.status == "completed":
+            fc, sc = _costs(r)
+            d["cost_usd"] += fc + sc
+            d["filter_cost_usd"] += fc
+            d["score_cost_usd"] += sc
+            d["input_tokens"] += r.input_tokens or 0
+            d["filter_input_tokens"] += r.filter_input_tokens or 0
+            d["score_input_tokens"] += r.score_input_tokens or 0
+            d["output_tokens"] += r.output_tokens or 0
+            d["matches"] += r.apply_count or 0
+
+    # Fill every date in the window (zeros for days with no runs)
+    today = cfg.now_ist().date()
+    start_date = today - timedelta(days=days - 1)
+    daily = []
+    for i in range(days):
+        iso = (start_date + timedelta(days=i)).isoformat()
+        entry = dict(daily_map.get(iso, {
+            "cost_usd": 0.0, "filter_cost_usd": 0.0, "score_cost_usd": 0.0,
+            "input_tokens": 0, "filter_input_tokens": 0, "score_input_tokens": 0,
+            "output_tokens": 0, "runs": 0, "matches": 0,
+        }))
+        entry["date"] = iso
+        daily.append(entry)
+
+    # Per-user aggregation
+    user_map: dict = defaultdict(lambda: {
+        "cost_usd": 0.0, "filter_cost_usd": 0.0, "score_cost_usd": 0.0,
+        "runs": 0, "matches": 0, "input_tokens": 0,
+    })
+    for r in completed:
+        fc, sc = _costs(r)
+        um = user_map[r.user_id]
+        um["cost_usd"] += fc + sc
+        um["filter_cost_usd"] += fc
+        um["score_cost_usd"] += sc
+        um["runs"] += 1
+        um["matches"] += r.apply_count or 0
+        um["input_tokens"] += r.input_tokens or 0
+
+    users = {u.id: u for u in db.query(User).all()}
+    by_user = []
+    for uid, data in sorted(user_map.items(), key=lambda x: -x[1]["cost_usd"]):
+        u = users.get(uid)
+        if u:
+            by_user.append({
+                "user_id": uid,
+                "email": u.email,
+                "name": u.name or u.email.split("@")[0],
+                **data,
+            })
+
+    total_filter = sum(_costs(r)[0] for r in completed)
+    total_score  = sum(_costs(r)[1] for r in completed)
+
+    return {
+        "summary": {
+            "total_cost_usd":          total_filter + total_score,
+            "total_filter_cost_usd":   total_filter,
+            "total_score_cost_usd":    total_score,
+            "total_input_tokens":      sum(r.input_tokens or 0 for r in completed),
+            "total_output_tokens":     sum(r.output_tokens or 0 for r in completed),
+            "total_filter_input_tokens": sum(r.filter_input_tokens or 0 for r in completed),
+            "total_score_input_tokens":  sum(r.score_input_tokens or 0 for r in completed),
+            "total_runs":              len(runs),
+            "completed_runs":          len(completed),
+            "failed_runs":             sum(1 for r in runs if r.status == "failed"),
+            "cancelled_runs":          sum(1 for r in runs if r.status == "cancelled"),
+            "total_matches":           sum(r.apply_count or 0 for r in completed),
+            "avg_matches_per_run":     round(
+                sum(r.apply_count or 0 for r in completed) / max(len(completed), 1), 1
+            ),
+        },
+        "daily": daily,
+        "by_user": by_user,
+    }

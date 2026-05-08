@@ -152,12 +152,12 @@ function JobCard({ job }: { job: Job }) {
                 href={job.url?.replace(/([^:])\/\/+/g, "$1/")}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 font-semibold text-slate-100 hover:text-violet-300 transition-colors group/link text-sm overflow-hidden"
+                className="flex items-start gap-1.5 font-semibold text-slate-100 hover:text-violet-300 transition-colors group/link text-sm"
               >
-                <span className="truncate">{job.title}</span>
-                <IconExternal className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity shrink-0" />
+                <span className="line-clamp-2 sm:line-clamp-1">{job.title}</span>
+                <IconExternal className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity shrink-0 mt-0.5" />
               </a>
-              <p className="text-sm text-slate-400 mt-0.5 truncate">
+              <p className="text-sm text-slate-400 mt-0.5 line-clamp-2 sm:line-clamp-1">
                 {job.company_name}
                 {job.location && <span className="text-slate-600"> · {job.location}</span>}
               </p>
@@ -211,7 +211,7 @@ function JobCard({ job }: { job: Job }) {
 
           <div className="mt-3 flex items-center gap-2.5 flex-wrap">
             {job.department && (
-              <span className="badge bg-slate-800 text-slate-400 border border-slate-700/60 max-w-[200px] overflow-hidden" title={job.department}><span className="truncate">{job.department}</span></span>
+              <span className="badge bg-slate-800 text-slate-400 border border-slate-700/60" title={job.department}>{job.department}</span>
             )}
             {job.posted_on && <span className="text-xs text-slate-600">{job.posted_on}</span>}
           </div>
