@@ -251,6 +251,8 @@ function RunCard({ r, onStop }: { r: AdminScoreRun; onStop: () => void }) {
     ? Math.round((r.companies_done / r.companies_total) * 100)
     : 0;
 
+  const hasPerStageTokens = r.filter_input_tokens > 0 || r.score_input_tokens > 0;
+
   return (
     <div className={`bg-slate-900 border rounded-xl overflow-hidden transition-colors ${active ? "border-violet-500/30" : "border-slate-800"}`}>
       {/* Run summary bar */}
@@ -268,14 +270,20 @@ function RunCard({ r, onStop }: { r: AdminScoreRun; onStop: () => void }) {
               <span className="text-emerald-400 font-medium">{r.apply_count} match{r.apply_count !== 1 ? "es" : ""}</span>
               {r.input_tokens > 0 && (
                 <span className="text-slate-600">
-                  {(r.input_tokens / 1000).toFixed(1)}k / {(r.output_tokens / 1000).toFixed(1)}k tok
+                  {r.input_tokens.toLocaleString()} in · {r.output_tokens.toLocaleString()} out
                 </span>
               )}
-              {r.cost_usd > 0 && (
-                <span className="text-amber-400/80 font-medium">
-                  ₹{(r.cost_usd * 84).toFixed(2)}
+              {hasPerStageTokens ? (
+                <span className="text-xs text-slate-500">
+                  <span className="text-slate-600">filter</span>{" "}
+                  <span className="text-amber-400/70 font-medium">${r.filter_cost_usd.toFixed(4)}</span>
+                  <span className="text-slate-700 mx-1">·</span>
+                  <span className="text-slate-600">score</span>{" "}
+                  <span className="text-amber-400/90 font-medium">${r.score_cost_usd.toFixed(4)}</span>
                 </span>
-              )}
+              ) : r.cost_usd > 0 ? (
+                <span className="text-amber-400/80 font-medium">${r.cost_usd.toFixed(4)}</span>
+              ) : null}
             </div>
           </div>
 

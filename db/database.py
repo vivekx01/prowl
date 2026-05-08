@@ -29,6 +29,18 @@ def _migrate_postgres():
         if not has_col("score_runs", "company_ids"):
             conn.execute(text("ALTER TABLE score_runs ADD COLUMN company_ids JSONB"))
 
+        for col, col_type in [
+            ("filter_input_tokens",  "INTEGER DEFAULT 0"),
+            ("filter_output_tokens", "INTEGER DEFAULT 0"),
+            ("score_input_tokens",   "INTEGER DEFAULT 0"),
+            ("score_output_tokens",  "INTEGER DEFAULT 0"),
+            ("cached_tokens",        "INTEGER DEFAULT 0"),
+            ("cost_usd",             "DOUBLE PRECISION DEFAULT 0.0"),
+            ("days_back",            "INTEGER"),
+        ]:
+            if not has_col("score_runs", col):
+                conn.execute(text(f"ALTER TABLE score_runs ADD COLUMN {col} {col_type}"))
+
 
 def _migrate():
     if not _is_sqlite:

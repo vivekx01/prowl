@@ -156,5 +156,11 @@ export interface AdminScoreRun {
   apply_count: number;
   input_tokens: number;
   output_tokens: number;
+  filter_input_tokens: number;
+  filter_output_tokens: number;
+  score_input_tokens: number;
+  score_output_tokens: number;
   cost_usd: number;
+  filter_cost_usd: number;
+  score_cost_usd: number;
 }

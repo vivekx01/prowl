@@ -29,12 +29,12 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",
 FILTER_MODEL = os.getenv("FILTER_MODEL", "google/gemini-2.5-flash-lite")
 SCORE_MODEL  = os.getenv("SCORE_MODEL",  "google/gemini-2.5-flash")
 
-# Pricing per million tokens (USD)
-FILTER_MODEL_PRICE_IN      = float(os.getenv("FILTER_MODEL_PRICE_IN",      "0.10"))
-FILTER_MODEL_PRICE_OUT     = float(os.getenv("FILTER_MODEL_PRICE_OUT",     "0.40"))
-SCORE_MODEL_PRICE_IN       = float(os.getenv("SCORE_MODEL_PRICE_IN",       "0.15"))
-SCORE_MODEL_PRICE_OUT      = float(os.getenv("SCORE_MODEL_PRICE_OUT",      "0.60"))
-SCORE_MODEL_CACHE_DISCOUNT = float(os.getenv("SCORE_MODEL_CACHE_DISCOUNT", "0.25"))
+# Pricing per million tokens (USD) — override via env vars to match your actual models
+FILTER_MODEL_PRICE_IN      = float(os.getenv("FILTER_MODEL_PRICE_IN",      "0.15"))
+FILTER_MODEL_PRICE_OUT     = float(os.getenv("FILTER_MODEL_PRICE_OUT",     "0.60"))
+SCORE_MODEL_PRICE_IN       = float(os.getenv("SCORE_MODEL_PRICE_IN",       "0.09"))
+SCORE_MODEL_PRICE_OUT      = float(os.getenv("SCORE_MODEL_PRICE_OUT",      "0.45"))
+SCORE_MODEL_CACHE_DISCOUNT = float(os.getenv("SCORE_MODEL_CACHE_DISCOUNT", "1.0"))
 
 REQUEST_DELAY = float(os.getenv("REQUEST_DELAY", "1.5"))
 MAX_JOBS_PER_COMPANY = int(os.getenv("MAX_JOBS_PER_COMPANY", "200"))

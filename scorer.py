@@ -202,8 +202,7 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
         run.cached_tokens = usage["cached"]
         run.cost_usd = _compute_cost(usage)
         run.status = "completed"
-        cost_inr = run.cost_usd * 84
-        _log(db, run_id, f"Done — {total_apply} total matches · {inp:,} in / {out:,} out tokens · ₹{cost_inr:.2f}")
+        _log(db, run_id, f"Done — {total_apply} total matches · {inp:,} in / {out:,} out tokens · ${run.cost_usd:.4f}")
 
     except Exception as e:
         print(f"[score run {run_id}] fatal: {e}")

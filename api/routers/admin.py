@@ -1,5 +1,6 @@
 import json
 
+import config as cfg
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -199,7 +200,25 @@ def list_all_score_runs(
     return [_serialize_score_run(r) for r in runs]
 
 
+def _stage_costs(r: ScoreRun) -> tuple[float, float]:
+    """(filter_cost_usd, score_cost_usd) computed from per-stage token counts."""
+    filter_cost = (
+        (r.filter_input_tokens or 0) * cfg.FILTER_MODEL_PRICE_IN
+        + (r.filter_output_tokens or 0) * cfg.FILTER_MODEL_PRICE_OUT
+    ) / 1_000_000
+
+    cached = r.cached_tokens or 0
+    score_in = r.score_input_tokens or 0
+    score_cost = (
+        cached * cfg.SCORE_MODEL_PRICE_IN * cfg.SCORE_MODEL_CACHE_DISCOUNT
+        + max(score_in - cached, 0) * cfg.SCORE_MODEL_PRICE_IN
+        + (r.score_output_tokens or 0) * cfg.SCORE_MODEL_PRICE_OUT
+    ) / 1_000_000
+    return filter_cost, score_cost
+
+
 def _serialize_score_run(r: ScoreRun) -> dict:
+    filter_cost, score_cost = _stage_costs(r)
     return {
         "id": r.id,
         "user_id": r.user_id,
@@ -213,7 +232,13 @@ def _serialize_score_run(r: ScoreRun) -> dict:
         "apply_count": r.apply_count,
         "input_tokens": r.input_tokens,
         "output_tokens": r.output_tokens,
+        "filter_input_tokens": r.filter_input_tokens or 0,
+        "filter_output_tokens": r.filter_output_tokens or 0,
+        "score_input_tokens": r.score_input_tokens or 0,
+        "score_output_tokens": r.score_output_tokens or 0,
         "cost_usd": r.cost_usd or 0.0,
+        "filter_cost_usd": filter_cost,
+        "score_cost_usd": score_cost,
         "company_ids": r.company_ids,
     }
 
