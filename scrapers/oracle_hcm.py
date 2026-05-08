@@ -26,9 +26,9 @@ async def resolve_config(url: str) -> tuple[dict, str | None]:
     Returns (config_dict, warning_or_None).
     Raises ValueError if not a valid Oracle HCM portal.
     """
-    m = re.search(r"(CX_[A-Z0-9_]+)", url)
+    m = re.search(r"/sites/([^/?#\s]+)", url)
     if not m:
-        raise ValueError("Could not extract site number (CX_...) from URL")
+        raise ValueError("Could not extract site number from URL — expected /sites/{name} in the path")
     site_number = m.group(1)
 
     async with httpx.AsyncClient(
