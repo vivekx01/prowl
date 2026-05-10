@@ -1,12 +1,13 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from api.deps import get_current_user
 from db.database import get_db
-from db.models import JobListing, JobScore, Application, User
-from api.schemas import JobOut
+from db.models import Company, JobListing, JobScore, Application, User
+from api.schemas import JobOut, JobsPageOut
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -22,28 +23,25 @@ def _serialize(listing: JobListing, user_id: int) -> dict:
     }
 
 
-@router.get("", response_model=list[JobOut])
+@router.get("", response_model=JobsPageOut)
 def list_jobs(
     verdict: Optional[str] = Query(None),
     company_id: Optional[int] = Query(None),
     score_min: Optional[float] = Query(None),
     unscored: bool = Query(False),
     has_application: bool = Query(False),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     q = (
         db.query(JobListing)
-        .options(
-            joinedload(JobListing.company),      # 1-to-1: join is fine
-            selectinload(JobListing.scores),     # 1-to-many: avoids Cartesian with applications
-            selectinload(JobListing.applications),
-        )
         .order_by(JobListing.first_seen_at.desc())
     )
 
     if has_application:
-        # Inner join filters to only listings this user has tracked
         q = q.join(
             Application,
             (Application.listing_id == JobListing.id) & (Application.user_id == user.id),
@@ -51,6 +49,13 @@ def list_jobs(
 
     if company_id:
         q = q.filter(JobListing.company_id == company_id)
+
+    if search:
+        term = f"%{search.strip()}%"
+        matching_company_ids = db.query(Company.id).filter(Company.name.ilike(term))
+        q = q.filter(
+            or_(JobListing.title.ilike(term), JobListing.company_id.in_(matching_company_ids))
+        )
 
     if unscored:
         scored_ids = db.query(JobScore.listing_id).filter(JobScore.user_id == user.id)
@@ -63,8 +68,18 @@ def list_jobs(
         if score_min is not None:
             q = q.filter(JobScore.score >= score_min)
 
-    listings = q.all()
-    return [_serialize(l, user.id) for l in listings]
+    total = q.count()
+    listings = (
+        q.options(
+            joinedload(JobListing.company),
+            selectinload(JobListing.scores),
+            selectinload(JobListing.applications),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return {"total": total, "items": [_serialize(l, user.id) for l in listings]}
 
 
 @router.get("/{job_id}", response_model=JobOut)

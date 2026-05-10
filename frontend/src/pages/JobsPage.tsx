@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import api, { type Job } from "../api/client";
+import api, { type Job, type JobsPage } from "../api/client";
 import { IconExternal } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 
@@ -115,6 +115,7 @@ function groupByScrapedDate(jobs: Job[]): { dateKey: string; label: string; jobs
 function JobCard({ job }: { job: Job }) {
   const qc = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reasonExpanded, setReasonExpanded] = useState(false);
 
   const track = useMutation({
     mutationFn: (status: string) =>
@@ -168,7 +169,7 @@ function JobCard({ job }: { job: Job }) {
               {appStatus && (
                 <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[appStatus]}`}>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[appStatus]}`} />
-                  <span className="hidden sm:inline">{STATUS_LABEL[appStatus] ?? appStatus}</span>
+                  <span>{STATUS_LABEL[appStatus] ?? appStatus}</span>
                 </span>
               )}
               <div className="relative">
@@ -206,7 +207,17 @@ function JobCard({ job }: { job: Job }) {
           </div>
 
           {job.score?.reason && (
-            <p className="mt-2 text-xs text-slate-500 leading-relaxed line-clamp-2">{job.score.reason}</p>
+            <div className="mt-2">
+              <p className={`text-xs text-slate-500 leading-relaxed ${reasonExpanded ? "" : "line-clamp-2"}`}>
+                {job.score.reason}
+              </p>
+              <button
+                onClick={() => setReasonExpanded(e => !e)}
+                className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-0.5"
+              >
+                {reasonExpanded ? "Show less" : "Read more"}
+              </button>
+            </div>
           )}
 
           <div className="mt-3 flex items-center gap-2.5 flex-wrap">
@@ -283,23 +294,38 @@ function FilterGroup({
 // Page
 // ---------------------------------------------------------------------------
 
+const PAGE_SIZE = 50;
+
 export default function JobsPage() {
   const { isAdmin } = useAuth();
   const [filter, setFilter] = useState<FilterKey>("fresh");
   const [scoreMin, setScoreMin] = useState(7);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
 
   const cfg = FILTER_CONFIG[filter];
 
-  const { data: rawJobs = [], isLoading } = useQuery<Job[]>({
-    queryKey: ["jobs", cfg.queryVerdict, filter === "fresh" ? scoreMin : null],
+  function changeFilter(k: FilterKey) { setFilter(k); setPage(1); }
+  function changeScoreMin(v: number) { setScoreMin(v); setPage(1); }
+  function changeSearch(v: string) { setSearch(v); setPage(1); }
+
+  const { data, isLoading } = useQuery<JobsPage>({
+    queryKey: ["jobs", cfg.queryVerdict, filter === "fresh" ? scoreMin : null, page, search || null],
     queryFn: () =>
       api.get("/jobs", {
         params: {
           verdict: cfg.queryVerdict ?? undefined,
           score_min: filter === "fresh" ? scoreMin : undefined,
+          search: search.trim() || undefined,
+          page,
+          page_size: PAGE_SIZE,
         },
       }).then(r => r.data),
   });
+
+  const rawJobs = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const displayJobs = cfg.clientFilter ? rawJobs.filter(cfg.clientFilter) : rawJobs;
   const hiddenCount = filter === "fresh" ? rawJobs.length - displayJobs.length : 0;
@@ -310,9 +336,9 @@ export default function JobsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Jobs</h1>
+          <h1 className="text-xl font-semibold text-slate-100">Recommendations</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {displayJobs.length} listing{displayJobs.length !== 1 ? "s" : ""}
+            {total} listing{total !== 1 ? "s" : ""}
             {hiddenCount > 0 && (
               <span className="text-slate-700"> · {hiddenCount} reviewed hidden</span>
             )}
@@ -328,19 +354,41 @@ export default function JobsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <FilterGroup keys={ALL_FILTERS} active={filter} onSelect={setFilter} />
+        <FilterGroup keys={ALL_FILTERS} active={filter} onSelect={changeFilter} />
 
         {filter === "fresh" && (
           <label className="flex items-center gap-2 text-xs text-slate-500 ml-1">
             Min score
             <input
               type="number" min={0.1} max={10} value={scoreMin}
-              onChange={e => setScoreMin(Number(e.target.value))}
+              onChange={e => changeScoreMin(Number(e.target.value))}
               step={0.1}
               className="w-16 bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-slate-100 text-center focus:outline-none focus:border-violet-500"
             />
           </label>
         )}
+
+        <div className="relative w-full sm:w-auto sm:ml-auto">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+          </svg>
+          <input
+            value={search}
+            onChange={e => changeSearch(e.target.value)}
+            placeholder="Search jobs…"
+            className="input pl-8 pr-7 text-sm h-8 w-full sm:w-60"
+          />
+          {search && (
+            <button
+              onClick={() => changeSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -374,6 +422,27 @@ export default function JobsPage() {
           {groups.map(g => (
             <DateGroup key={g.dateKey} label={g.label} dateKey={g.dateKey} jobs={g.jobs} />
           ))}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn-ghost text-xs px-3 py-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ← Prev
+              </button>
+              <span className="text-xs text-slate-500">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="btn-ghost text-xs px-3 py-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

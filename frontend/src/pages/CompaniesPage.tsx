@@ -750,8 +750,8 @@ export default function CompaniesPage() {
       </div>
 
       {/* Search + filter row */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full sm:flex-1 sm:max-w-xs">
           <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
           </svg>
@@ -759,8 +759,18 @@ export default function CompaniesPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search companies…"
-            className="input pl-8 text-sm h-8"
+            className="input pl-8 pr-7 text-sm h-8"
           />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Filter tabs */}

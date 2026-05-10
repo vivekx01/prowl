@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api, { type Job } from "../api/client";
+import api, { type Job, type JobsPage } from "../api/client";
 import { IconExternal } from "../components/Icons";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +76,7 @@ const TIER_RING: Record<string, string> = {
 function JobCard({ job }: { job: Job }) {
   const qc = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reasonExpanded, setReasonExpanded] = useState(false);
 
   const track = useMutation({
     mutationFn: (status: string) =>
@@ -129,7 +130,7 @@ function JobCard({ job }: { job: Job }) {
               {appStatus && (
                 <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[appStatus]}`}>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[appStatus]}`} />
-                  <span className="hidden sm:inline">{STATUS_LABEL[appStatus] ?? appStatus}</span>
+                  <span>{STATUS_LABEL[appStatus] ?? appStatus}</span>
                 </span>
               )}
               <div className="relative">
@@ -167,7 +168,17 @@ function JobCard({ job }: { job: Job }) {
           </div>
 
           {job.score?.reason && (
-            <p className="mt-2 text-xs text-slate-500 leading-relaxed line-clamp-2">{job.score.reason}</p>
+            <div className="mt-2">
+              <p className={`text-xs text-slate-500 leading-relaxed ${reasonExpanded ? "" : "line-clamp-2"}`}>
+                {job.score.reason}
+              </p>
+              <button
+                onClick={() => setReasonExpanded(e => !e)}
+                className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-0.5"
+              >
+                {reasonExpanded ? "Show less" : "Read more"}
+              </button>
+            </div>
           )}
 
           <div className="mt-3 flex items-center gap-2.5 flex-wrap">
@@ -193,33 +204,65 @@ function JobCard({ job }: { job: Job }) {
 
 export default function ApplicationsPage() {
   const [tab, setTab] = useState<TabKey>("applied");
+  const [search, setSearch] = useState("");
 
-  const { data: tracked = [], isLoading } = useQuery<Job[]>({
+  const { data, isLoading } = useQuery<JobsPage>({
     queryKey: ["jobs", "applied"],
-    queryFn: () => api.get("/jobs?has_application=true").then(r => r.data),
+    queryFn: () => api.get("/jobs?has_application=true&page_size=200").then(r => r.data),
   });
+  const tracked = data?.items ?? [];
   const displayed = tab === "all"
     ? tracked
     : tracked.filter(j => j.application?.status === tab);
 
-  // Count per tab
+  // Count per tab (unaffected by search)
   const counts: Record<string, number> = { all: tracked.length };
   for (const j of tracked) {
     const s = j.application!.status;
     counts[s] = (counts[s] ?? 0) + 1;
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? displayed.filter(j =>
+        j.title.toLowerCase().includes(q) || j.company_name.toLowerCase().includes(q)
+      )
+    : displayed;
+
   // Sort by score desc
-  const sorted = [...displayed].sort((a, b) => (b.score?.score ?? -1) - (a.score?.score ?? -1));
+  const sorted = [...filtered].sort((a, b) => (b.score?.score ?? -1) - (a.score?.score ?? -1));
 
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-slate-100">Applications</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          {tracked.length} tracked · {counts["applied"] ?? 0} applied · {counts["interviewing"] ?? 0} interviewing
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-100">Applications</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {tracked.length} tracked · {counts["applied"] ?? 0} applied · {counts["interviewing"] ?? 0} interviewing
+          </p>
+        </div>
+        <div className="relative w-full sm:w-auto">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+          </svg>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search applications…"
+            className="input pl-8 pr-7 text-sm h-8 w-full sm:w-60"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

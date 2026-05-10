@@ -88,6 +88,11 @@ export interface Job {
   application: AppRecord | null;
 }
 
+export interface JobsPage {
+  total: number;
+  items: Job[];
+}
+
 export interface RunLog {
   id: number;
   timestamp: string;

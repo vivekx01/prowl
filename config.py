@@ -26,8 +26,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "prowl-secret-key-change-in-production")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
-FILTER_MODEL = os.getenv("FILTER_MODEL", "google/gemini-2.5-flash-lite")
-SCORE_MODEL  = os.getenv("SCORE_MODEL",  "google/gemini-2.5-flash")
+FILTER_MODEL    = os.getenv("FILTER_MODEL",    "google/gemini-2.5-flash-lite")
+SCORE_MODEL     = os.getenv("SCORE_MODEL",     "google/gemini-2.5-flash")
+INSIGHTS_MODEL  = os.getenv("INSIGHTS_MODEL",  "openai/gpt-4o-mini")
 
 # Pricing per million tokens (USD) — override via env vars to match your actual models
 FILTER_MODEL_PRICE_IN      = float(os.getenv("FILTER_MODEL_PRICE_IN",      "0.15"))

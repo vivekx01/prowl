@@ -82,6 +82,11 @@ class JobOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class JobsPageOut(BaseModel):
+    total: int
+    items: list[JobOut]
+
+
 # ---------------------------------------------------------------------------
 # Application
 # ---------------------------------------------------------------------------

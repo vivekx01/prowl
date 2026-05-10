@@ -7,7 +7,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 const userNav = [
-  { to: "/", label: "Jobs", icon: IconJobs },
+  { to: "/", label: "Recommendations", icon: IconJobs },
   { to: "/scan", label: "Find Openings", icon: IconScan },
   { to: "/applications", label: "Applications", icon: IconApplications },
   { to: "/prowl-ai", label: "Prowl AI", icon: IconInsights },

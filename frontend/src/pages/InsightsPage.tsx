@@ -115,7 +115,7 @@ function MessageBubble({ msg }: { msg: Message }) {
   if (msg.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[75%] bg-slate-800 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-slate-100 leading-relaxed">
+        <div className="max-w-[88%] sm:max-w-[75%] bg-slate-800 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-slate-100 leading-relaxed">
           {msg.content}
         </div>
       </div>
@@ -123,12 +123,12 @@ function MessageBubble({ msg }: { msg: Message }) {
   }
 
   return (
-    <div className="flex gap-3 items-start">
+    <div className="flex gap-2.5 sm:gap-3 items-start">
       <ProwlAvatar />
-      <div className="flex-1 min-w-0 pt-0.5 space-y-4">
+      <div className="flex-1 min-w-0 pt-0.5 space-y-3 sm:space-y-4">
         <MarkdownText text={msg.content} />
         {msg.chart && (
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 overflow-hidden">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 sm:p-4 overflow-hidden">
             <EChart option={msg.chart} />
           </div>
         )}
@@ -225,18 +225,18 @@ export default function InsightsPage() {
     <div className="flex flex-col h-[calc(100vh-5.5rem)] md:h-[calc(100vh-3rem)] w-full">
       {/* ── Messages ── */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-3xl mx-auto px-2 py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-5 py-4 sm:py-6">
 
           {isEmpty ? (
             /* Empty / welcome state */
-            <div className="flex flex-col items-center justify-center min-h-[55vh] gap-10 text-center">
-              <div className="space-y-3">
-                <div className="w-16 h-16 rounded-2xl bg-violet-600/15 border border-violet-500/20 flex items-center justify-center mx-auto">
-                  <svg className="w-8 h-8 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="flex flex-col items-center justify-center min-h-[45vh] sm:min-h-[55vh] gap-6 sm:gap-10 text-center">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-violet-600/15 border border-violet-500/20 flex items-center justify-center mx-auto">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6.75v6.75" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-slate-100">What would you like to know?</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-slate-100">What would you like to know?</h2>
                 <p className="text-sm text-slate-500 max-w-xs mx-auto">
                   Ask anything about your job search.{" "}
                   {summary && (
@@ -252,19 +252,19 @@ export default function InsightsPage() {
                   <button
                     key={s.q}
                     onClick={() => send(s.q)}
-                    className="text-left px-4 py-3.5 rounded-xl border border-slate-800 bg-slate-900/40 hover:border-violet-500/30 hover:bg-slate-800/60 text-sm text-slate-400 hover:text-slate-200 transition-all group"
+                    className="text-left px-3 py-2.5 sm:px-4 sm:py-3.5 rounded-xl border border-slate-800 bg-slate-900/40 hover:border-violet-500/30 hover:bg-slate-800/60 text-sm text-slate-400 hover:text-slate-200 transition-all group"
                   >
-                    <span className="font-medium group-hover:text-slate-300 block mb-0.5 text-xs uppercase tracking-wide text-slate-500">
+                    <span className="font-medium group-hover:text-slate-300 block mb-0.5 text-[10px] sm:text-xs uppercase tracking-wide text-slate-500">
                       {s.label}
                     </span>
-                    {s.q}
+                    <span className="text-xs sm:text-sm">{s.q}</span>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
             /* Chat messages */
-            <div className="space-y-8">
+            <div className="space-y-5 sm:space-y-8">
               {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
               {loading && <TypingIndicator />}
               <div ref={bottomRef} />
@@ -276,10 +276,10 @@ export default function InsightsPage() {
       </div>
 
       {/* ── Input bar ── */}
-      <div className="shrink-0 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-sm pt-4 pb-3">
-        <div className="max-w-3xl mx-auto px-2">
+      <div className="shrink-0 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-sm pt-3 pb-3 sm:pt-4 sm:pb-3">
+        <div className="max-w-3xl mx-auto px-4 sm:px-5">
           <form onSubmit={e => { e.preventDefault(); send(input); }}>
-            <div className="flex items-center gap-3 bg-slate-800/60 border border-slate-700 hover:border-slate-600 focus-within:border-violet-500/60 rounded-2xl transition-colors px-4 py-2">
+            <div className="flex items-center gap-2 sm:gap-3 bg-slate-800/60 border border-slate-700 hover:border-slate-600 focus-within:border-violet-500/60 rounded-2xl transition-colors px-3 sm:px-4 py-2">
               <textarea
                 ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
                 value={input}
@@ -308,7 +308,7 @@ export default function InsightsPage() {
               </button>
             </div>
           </form>
-          <p className="text-center text-xs text-slate-700 mt-2">Shift+Enter for new line · Enter to send</p>
+          <p className="hidden sm:block text-center text-xs text-slate-700 mt-2">Shift+Enter for new line · Enter to send</p>
         </div>
       </div>
     </div>

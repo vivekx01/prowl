@@ -32,7 +32,7 @@ LIVE DATA SNAPSHOT:
 class InsightsChat:
     def __init__(self):
         self._llm = ChatOpenRouter(
-            model=config.SCORE_MODEL,
+            model=config.INSIGHTS_MODEL,
             openrouter_api_key=config.OPENROUTER_API_KEY,
             temperature=0.3,
         )
