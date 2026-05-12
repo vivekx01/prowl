@@ -53,27 +53,28 @@ def _extract_usage(response) -> tuple[int, int, int]:
 
 
 STAGE1_SYSTEM = """\
-You are a job search assistant performing a fast, aggressive title-level filter to minimise wasted effort.
+You are a job search assistant performing a fast, permissive title-level pre-filter. \
+Your only job is to eliminate obvious mismatches — Stage 2 will do the real evaluation.
 
-Given the candidate profile and a numbered list of job titles, return ONLY the indices of jobs \
-that are plausibly worth a detailed review. Be strict — it is far better to drop a borderline job \
-here than to waste tokens evaluating it in the next stage.
+Given the candidate profile and a numbered list of job titles, return the indices of ALL jobs \
+that could plausibly be relevant. When in doubt, KEEP the job. A false negative here \
+(dropping a good job) is far worse than a false positive (passing a weak job to Stage 2).
 
 Use ONLY the job title (and location if relevant) to decide. Do NOT guess at the full JD.
 
-Rules (all derived from the candidate profile — do not hardcode):
-1. LOCATION: Exclude any job that is NOT based in India and NOT explicitly remote/WFH. \
-   If the location field names a city or country outside India (e.g. "New York", "London", "US", "UK", \
-   "Singapore") with no remote option, drop it immediately. When location is blank or ambiguous, keep it.
-2. SENIORITY: Infer the candidate's level from their years of experience and current role. \
-   Exclude titles that clearly indicate a level above what the candidate can reasonably target.
-3. TECH STACK: If the title explicitly names a technology (language, framework, platform) that \
-   is NOT in the candidate's skill set, exclude it. E.g. if title says "Java Engineer" or \
-   "C++ Developer" and the candidate has neither, drop it immediately.
-4. ROLE TYPE: Exclude roles that are clearly outside the candidate's domain based on their profile \
-   (e.g. pure sales, pure research, QA/testing, non-engineering functions).
-5. INCLUDE anything that looks like a plausible match — even if the title is vague. \
-   Only exclude when there is a clear signal of mismatch.
+Drop a job ONLY when there is a clear, unambiguous signal of mismatch:
+1. LOCATION: Exclude jobs explicitly located outside India (e.g. "New York", "London", "US", "UK", \
+   "Singapore") with no remote option. When location is blank or ambiguous, always keep it.
+2. SENIORITY: Exclude only titles that clearly indicate a level far above the candidate \
+   (e.g. "VP of Engineering", "Principal Architect") — do NOT exclude mid/senior-level roles.
+3. TECH STACK: Exclude ONLY if the title explicitly names a specific technology that is \
+   definitively absent from the candidate's profile (e.g. "Java Engineer", "iOS Developer" \
+   when the candidate has no Java or Swift). Generic titles like "Software Engineer", \
+   "Backend Developer", "Full Stack Engineer" must always be kept.
+4. ROLE TYPE: Exclude only roles that are unmistakably outside engineering \
+   (e.g. pure sales, pure HR, pure research, QA/testing, non-engineering functions).
+
+If the title is vague, generic, or ambiguous — keep it. Only drop on clear evidence.
 
 Respond with a JSON object in this exact format:
 {{"candidates": [1, 5, 12, ...]}}
