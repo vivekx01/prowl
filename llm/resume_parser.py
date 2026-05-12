@@ -34,6 +34,15 @@ Industries, problem spaces, and types of systems the candidate has worked on.
 Based on their trajectory, what types of roles align with their background? \
 What kind of work are they best positioned for?
 
+## Target Roles
+List 8–12 specific job titles this candidate is a strong fit for, derived from the semantic \
+meaning of their skills, experience, and domain — not just their literal job history. \
+Think like a recruiter who deeply understands the candidate: what titles would they search for? \
+Include both exact matches and adjacent roles where the candidate's skills transfer well. \
+Format as a flat comma-separated list on one line.
+Example: Software Engineer, Backend Engineer, Full Stack Engineer, AI Engineer, \
+ML Engineer, Platform Engineer, API Developer, Python Developer
+
 ## Education
 Degrees, institutions, graduation years, relevant certifications.
 
@@ -41,6 +50,8 @@ Rules:
 - Do not invent information not present in the resume.
 - Be specific with technologies — do not lump them as "various tools".
 - Keep bullet points tight; avoid filler sentences.
+- For Target Roles, think semantically — a candidate with LangChain + Python + APIs is a \
+  fit for "AI Engineer" and "LLM Engineer" even if their title was never that.
 """
 
 
