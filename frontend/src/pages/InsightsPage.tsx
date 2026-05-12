@@ -222,7 +222,7 @@ export default function InsightsPage() {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5.5rem)] md:h-[calc(100vh-3rem)] w-full">
+    <div className="flex flex-col h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-3rem)] w-full">
       {/* ── Messages ── */}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-3xl mx-auto px-4 sm:px-5 py-4 sm:py-6">

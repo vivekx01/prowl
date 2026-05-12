@@ -229,8 +229,12 @@ export default function ApplicationsPage() {
       )
     : displayed;
 
-  // Sort by score desc
-  const sorted = [...filtered].sort((a, b) => (b.score?.score ?? -1) - (a.score?.score ?? -1));
+  // Sort by date applied desc (fall back to created_at for untracked dates)
+  const sorted = [...filtered].sort((a, b) => {
+    const dateA = a.application?.applied_at ?? a.application?.created_at ?? "";
+    const dateB = b.application?.applied_at ?? b.application?.created_at ?? "";
+    return dateB.localeCompare(dateA);
+  });
 
   return (
     <div className="w-full space-y-6">
