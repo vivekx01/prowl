@@ -92,6 +92,7 @@ def cleanup_old_listings(db: Session) -> int:
         db.query(JobListing.id)
         .filter(JobListing.first_seen_at < cutoff)
         .filter(~JobListing.applications.any())
+        .filter(~JobListing.pounce_runs.any())
         .all()
     ]
     if not old_ids:
