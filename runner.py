@@ -86,14 +86,17 @@ def seed_defaults(db: Session):
 # ---------------------------------------------------------------------------
 
 def cleanup_old_listings(db: Session) -> int:
+    from db.models import PounceRun
     cutoff = now_ist() - timedelta(days=config.LISTING_RETENTION_DAYS)
+    protected = set()
+    protected.update(r[0] for r in db.query(JobListing.id).join(JobListing.applications).all())
+    protected.update(r[0] for r in db.query(PounceRun.listing_id).filter(PounceRun.listing_id.isnot(None)).all())
     old_ids = [
         row[0] for row in
         db.query(JobListing.id)
         .filter(JobListing.first_seen_at < cutoff)
-        .filter(~JobListing.applications.any())
-        .filter(~JobListing.pounce_runs.any())
         .all()
+        if row[0] not in protected
     ]
     if not old_ids:
         return 0
