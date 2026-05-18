@@ -543,3 +543,99 @@ def get_analytics(
         "daily": daily,
         "by_user": by_user,
     }
+
+
+# ---------------------------------------------------------------------------
+# Model configuration
+# ---------------------------------------------------------------------------
+
+class ModelConfig(BaseModel):
+    filter_model: str
+    score_model: str
+    filter_model_price_in: float
+    filter_model_price_out: float
+    score_model_price_in: float
+    score_model_price_out: float
+    score_model_cache_discount: float
+
+
+_MODEL_SETTING_KEYS = {
+    "filter_model":             "model.filter_model",
+    "score_model":              "model.score_model",
+    "filter_model_price_in":    "model.filter_price_in",
+    "filter_model_price_out":   "model.filter_price_out",
+    "score_model_price_in":     "model.score_price_in",
+    "score_model_price_out":    "model.score_price_out",
+    "score_model_cache_discount": "model.score_cache_discount",
+}
+
+_MODEL_CONFIG_DEFAULTS = {
+    "model.filter_model":           lambda: cfg.FILTER_MODEL,
+    "model.score_model":            lambda: cfg.SCORE_MODEL,
+    "model.filter_price_in":        lambda: str(cfg.FILTER_MODEL_PRICE_IN),
+    "model.filter_price_out":       lambda: str(cfg.FILTER_MODEL_PRICE_OUT),
+    "model.score_price_in":         lambda: str(cfg.SCORE_MODEL_PRICE_IN),
+    "model.score_price_out":        lambda: str(cfg.SCORE_MODEL_PRICE_OUT),
+    "model.score_cache_discount":   lambda: str(cfg.SCORE_MODEL_CACHE_DISCOUNT),
+}
+
+
+def _read_model_config(db: Session) -> ModelConfig:
+    db_keys = list(_MODEL_CONFIG_DEFAULTS.keys())
+    rows = {
+        r.key: r.value
+        for r in db.query(Setting).filter(
+            Setting.user_id == None, Setting.key.in_(db_keys)
+        ).all()
+    }
+
+    def _get(k: str) -> str:
+        return rows.get(k, _MODEL_CONFIG_DEFAULTS[k]())
+
+    return ModelConfig(
+        filter_model=_get("model.filter_model"),
+        score_model=_get("model.score_model"),
+        filter_model_price_in=float(_get("model.filter_price_in")),
+        filter_model_price_out=float(_get("model.filter_price_out")),
+        score_model_price_in=float(_get("model.score_price_in")),
+        score_model_price_out=float(_get("model.score_price_out")),
+        score_model_cache_discount=float(_get("model.score_cache_discount")),
+    )
+
+
+@router.get("/model-config", response_model=ModelConfig)
+def get_model_config(
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    return _read_model_config(db)
+
+
+@router.put("/model-config", response_model=ModelConfig)
+def update_model_config(
+    body: ModelConfig,
+    _: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    updates = {
+        "model.filter_model":           body.filter_model,
+        "model.score_model":            body.score_model,
+        "model.filter_price_in":        str(body.filter_model_price_in),
+        "model.filter_price_out":       str(body.filter_model_price_out),
+        "model.score_price_in":         str(body.score_model_price_in),
+        "model.score_price_out":        str(body.score_model_price_out),
+        "model.score_cache_discount":   str(body.score_model_cache_discount),
+    }
+    existing = {
+        r.key: r
+        for r in db.query(Setting).filter(
+            Setting.user_id == None, Setting.key.in_(list(updates))
+        ).all()
+    }
+    for key, val in updates.items():
+        if key in existing:
+            existing[key].value = val
+        else:
+            db.add(Setting(user_id=None, key=key, value=val))
+    db.commit()
+    return _read_model_config(db)

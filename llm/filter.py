@@ -175,11 +175,11 @@ Profile:
 
 
 class JobFilter:
-    def __init__(self, profile: str):
+    def __init__(self, profile: str, filter_model: str | None = None, score_model: str | None = None):
         self.profile = profile
         self._compact_profile = profile  # replaced by warm_up(); full profile is safe fallback
-        self._filter_llm = _make_llm(config.FILTER_MODEL)
-        self._score_llm = _make_llm(config.SCORE_MODEL)
+        self._filter_llm = _make_llm(filter_model or config.FILTER_MODEL)
+        self._score_llm = _make_llm(score_model or config.SCORE_MODEL)
         self._filter_input_tokens = 0
         self._filter_output_tokens = 0
         self._score_input_tokens = 0

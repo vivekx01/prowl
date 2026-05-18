@@ -147,6 +147,16 @@ export interface ScrapeStatus {
   };
 }
 
+export interface ModelConfig {
+  filter_model: string;
+  score_model: string;
+  filter_model_price_in: number;
+  filter_model_price_out: number;
+  score_model_price_in: number;
+  score_model_price_out: number;
+  score_model_cache_discount: number;
+}
+
 export interface AdminScoreRun {
   id: number;
   user_id: number;

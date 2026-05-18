@@ -16,19 +16,51 @@ from llm.filter import JobFilter
 from scrapers.base import JobListing as ScraperListing
 
 
-def _compute_cost(usage: dict) -> float:
+def _load_model_config(db: Session) -> dict:
+    """Load model/pricing config from DB settings, falling back to env config."""
+    from db.models import Setting
+    keys_defaults = {
+        "model.filter_model":           config.FILTER_MODEL,
+        "model.score_model":            config.SCORE_MODEL,
+        "model.filter_price_in":        str(config.FILTER_MODEL_PRICE_IN),
+        "model.filter_price_out":       str(config.FILTER_MODEL_PRICE_OUT),
+        "model.score_price_in":         str(config.SCORE_MODEL_PRICE_IN),
+        "model.score_price_out":        str(config.SCORE_MODEL_PRICE_OUT),
+        "model.score_cache_discount":   str(config.SCORE_MODEL_CACHE_DISCOUNT),
+    }
+    rows = {
+        r.key: r.value
+        for r in db.query(Setting).filter(
+            Setting.user_id == None, Setting.key.in_(list(keys_defaults))
+        ).all()
+    }
+    def _get(k):
+        return rows.get(k, keys_defaults[k])
+
+    return {
+        "filter_model":         _get("model.filter_model"),
+        "score_model":          _get("model.score_model"),
+        "filter_price_in":      float(_get("model.filter_price_in")),
+        "filter_price_out":     float(_get("model.filter_price_out")),
+        "score_price_in":       float(_get("model.score_price_in")),
+        "score_price_out":      float(_get("model.score_price_out")),
+        "score_cache_discount": float(_get("model.score_cache_discount")),
+    }
+
+
+def _compute_cost(usage: dict, model_cfg: dict) -> float:
     """Calculate run cost in USD from per-stage token counts."""
     filter_cost = (
-        usage["filter_input"] * config.FILTER_MODEL_PRICE_IN
-        + usage["filter_output"] * config.FILTER_MODEL_PRICE_OUT
+        usage["filter_input"] * model_cfg["filter_price_in"]
+        + usage["filter_output"] * model_cfg["filter_price_out"]
     ) / 1_000_000
 
     cached = usage["cached"]
     score_in = usage["score_input"]
     score_cost = (
-        cached * config.SCORE_MODEL_PRICE_IN * config.SCORE_MODEL_CACHE_DISCOUNT
-        + max(score_in - cached, 0) * config.SCORE_MODEL_PRICE_IN
-        + usage["score_output"] * config.SCORE_MODEL_PRICE_OUT
+        cached * model_cfg["score_price_in"] * model_cfg["score_cache_discount"]
+        + max(score_in - cached, 0) * model_cfg["score_price_in"]
+        + usage["score_output"] * model_cfg["score_price_out"]
     ) / 1_000_000
 
     return filter_cost + score_cost
@@ -68,7 +100,8 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
     db.commit()
     _log(db, run_id, f"Starting score run: {len(companies)} companies, days_back={run.days_back or 'all'}")
 
-    job_filter = JobFilter(profile.content)
+    model_cfg = _load_model_config(db)
+    job_filter = JobFilter(profile.content, filter_model=model_cfg["filter_model"], score_model=model_cfg["score_model"])
     await job_filter.warm_up()
     _log(db, run_id, f"  compact profile: {job_filter._compact_profile}")
     results: list[dict] = []
@@ -210,7 +243,7 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
         run.score_input_tokens = usage["score_input"]
         run.score_output_tokens = usage["score_output"]
         run.cached_tokens = usage["cached"]
-        run.cost_usd = _compute_cost(usage)
+        run.cost_usd = _compute_cost(usage, model_cfg)
         run.status = "completed"
         _log(db, run_id, f"Done — {total_apply} total matches · {inp:,} in / {out:,} out tokens · ${run.cost_usd:.4f}")
 

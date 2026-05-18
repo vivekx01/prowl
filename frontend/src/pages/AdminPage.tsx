@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api, { type AdminScoreRun } from "../api/client";
+import api, { type AdminScoreRun, type ModelConfig } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { IconScan } from "../components/Icons";
 
@@ -248,6 +248,137 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Model configuration
+// ---------------------------------------------------------------------------
+
+function ModelConfigSection() {
+  const qc = useQueryClient();
+  const [form, setForm] = useState<ModelConfig | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const { data, isLoading } = useQuery<ModelConfig>({
+    queryKey: ["model-config"],
+    queryFn: () => api.get("/admin/model-config").then((r) => r.data),
+  });
+
+  useEffect(() => {
+    if (data) setForm(data);
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: (body: ModelConfig) =>
+      api.put("/admin/model-config", body).then((r) => r.data),
+    onSuccess: (updated: ModelConfig) => {
+      qc.setQueryData(["model-config"], updated);
+      setForm(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
+  function setField<K extends keyof ModelConfig>(key: K, val: ModelConfig[K]) {
+    setForm((f) => f ? { ...f, [key]: val } : f);
+  }
+
+  function numInput(key: keyof ModelConfig, label: string) {
+    const val = form ? (form[key] as number) : 0;
+    return (
+      <div>
+        <label className="block text-xs text-slate-500 mb-1">{label}</label>
+        <input
+          type="number"
+          value={val}
+          step="0.0001"
+          min={0}
+          onChange={(e) => setField(key, parseFloat(e.target.value) || 0 as any)}
+          className="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-violet-500/60 tabular-nums"
+        />
+      </div>
+    );
+  }
+
+  function textInput(key: keyof ModelConfig, label: string, placeholder?: string) {
+    const val = form ? (form[key] as string) : "";
+    return (
+      <div>
+        <label className="block text-xs text-slate-500 mb-1">{label}</label>
+        <input
+          type="text"
+          value={val}
+          placeholder={placeholder}
+          onChange={(e) => setField(key, e.target.value as any)}
+          className="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-violet-500/60 font-mono"
+        />
+      </div>
+    );
+  }
+
+  const isDirty = form && data && JSON.stringify(form) !== JSON.stringify(data);
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-200">Model Configuration</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            OpenRouter model IDs and pricing used for the two-stage scoring pipeline.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {saved && <span className="text-xs text-emerald-400">Saved</span>}
+          {isDirty && !saved && (
+            <button
+              onClick={() => data && setForm(data)}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Reset
+            </button>
+          )}
+          <button
+            onClick={() => form && save.mutate(form)}
+            disabled={save.isPending || !isDirty}
+            className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition"
+          >
+            {save.isPending ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {isLoading || !form ? (
+        <p className="text-xs text-slate-600">Loading…</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Stage 1 */}
+          <div className="space-y-3 p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+              Stage 1 — Filter Model
+            </p>
+            {textInput("filter_model", "Model ID", "e.g. google/gemini-2.5-flash-lite")}
+            <div className="grid grid-cols-2 gap-3">
+              {numInput("filter_model_price_in", "Input price ($/M tokens)")}
+              {numInput("filter_model_price_out", "Output price ($/M tokens)")}
+            </div>
+          </div>
+
+          {/* Stage 2 */}
+          <div className="space-y-3 p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+              Stage 2 — Score Model
+            </p>
+            {textInput("score_model", "Model ID", "e.g. google/gemini-2.5-flash")}
+            <div className="grid grid-cols-2 gap-3">
+              {numInput("score_model_price_in", "Input price ($/M tokens)")}
+              {numInput("score_model_price_out", "Output price ($/M tokens)")}
+            </div>
+            {numInput("score_model_cache_discount", "Cache discount multiplier (1.0 = no discount)")}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { user: me } = useAuth();
   const navigate = useNavigate();
@@ -347,6 +478,9 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {/* Model config */}
+      <ModelConfigSection />
 
       {/* Users */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">

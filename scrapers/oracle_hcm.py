@@ -43,11 +43,20 @@ async def resolve_config(url: str) -> tuple[dict, str | None]:
         except Exception as e:
             raise ValueError(f"Could not fetch URL: {e}")
 
-    m2 = re.search(r"apiBaseUrl:\s*'(https://[^':]+)", html)
-    if not m2:
-        raise ValueError("Not a valid Oracle HCM portal — apiBaseUrl not found in page")
+    domain = None
+    m2 = re.search(r"apiBaseUrl:\s*['\"]?(https://[^'\",:]+)", html)
+    if m2:
+        domain = m2.group(1).rstrip("/").replace("https://", "")
+    else:
+        # Oracle Cloud-hosted portals (*.fa.<region>.oraclecloud.com) serve the
+        # REST API from the same host — the domain is right in the portal URL.
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc
+        if re.search(r"\.fa\.[^.]+\.oraclecloud\.com$", host):
+            domain = host
 
-    domain = m2.group(1).rstrip("/").replace("https://", "")
+    if not domain:
+        raise ValueError("Not a valid Oracle HCM portal — apiBaseUrl not found in page")
 
     # Verify API and fetch India location facet ID
     facets_url = f"https://{domain}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
