@@ -52,6 +52,7 @@ class JobListing(Base):
     platform = Column(String, default="workday")
     description = Column(Text, nullable=True)
     first_seen_at = Column(DateTime, default=now_ist)
+    last_seen_at = Column(DateTime, default=now_ist)
 
     company = relationship("Company", back_populates="listings")
     scores = relationship("JobScore", back_populates="listing")

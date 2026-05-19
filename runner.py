@@ -94,7 +94,7 @@ def cleanup_old_listings(db: Session) -> int:
     old_ids = [
         row[0] for row in
         db.query(JobListing.id)
-        .filter(JobListing.first_seen_at < cutoff)
+        .filter(JobListing.last_seen_at < cutoff)
         .all()
         if row[0] not in protected
     ]
@@ -205,6 +205,8 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                             .first()
                         )
                         if existing:
+                            existing.last_seen_at = now_ist()
+                            db.commit()
                             continue
 
                         seen_in_batch.add(listing.job_id)

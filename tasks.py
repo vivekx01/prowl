@@ -27,16 +27,17 @@ def cleanup_old_listings():
     from db.models import Application, JobListing, JobScore, PounceRun
     from config import now_ist
 
+    from config import LISTING_RETENTION_DAYS
     db = SessionLocal()
     try:
-        cutoff = now_ist() - timedelta(days=30)
+        cutoff = now_ist() - timedelta(days=LISTING_RETENTION_DAYS)
 
         protected = set()
         protected.update(r[0] for r in db.query(Application.listing_id).all())
         protected.update(r[0] for r in db.query(PounceRun.listing_id).filter(PounceRun.listing_id.isnot(None)).all())
 
         ids = [
-            r[0] for r in db.query(JobListing.id).filter(JobListing.first_seen_at < cutoff).all()
+            r[0] for r in db.query(JobListing.id).filter(JobListing.last_seen_at < cutoff).all()
             if r[0] not in protected
         ]
         if not ids:
@@ -45,7 +46,7 @@ def cleanup_old_listings():
         db.query(JobScore).filter(JobScore.listing_id.in_(ids)).delete(synchronize_session=False)
         db.query(JobListing).filter(JobListing.id.in_(ids)).delete(synchronize_session=False)
         db.commit()
-        print(f"[cleanup] removed {len(ids)} listings older than 30 days")
+        print(f"[cleanup] removed {len(ids)} listings not seen in {LISTING_RETENTION_DAYS} days")
     except Exception as e:
         db.rollback()
         print(f"[cleanup] error: {e}")

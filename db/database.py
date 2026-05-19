@@ -29,6 +29,10 @@ def _migrate_postgres():
         if not has_col("score_runs", "company_ids"):
             conn.execute(text("ALTER TABLE score_runs ADD COLUMN company_ids JSONB"))
 
+        if not has_col("job_listings", "last_seen_at"):
+            conn.execute(text("ALTER TABLE job_listings ADD COLUMN last_seen_at TIMESTAMP"))
+            conn.execute(text("UPDATE job_listings SET last_seen_at = first_seen_at WHERE last_seen_at IS NULL"))
+
         for col, col_type in [
             ("filter_input_tokens",  "INTEGER DEFAULT 0"),
             ("filter_output_tokens", "INTEGER DEFAULT 0"),
@@ -147,6 +151,11 @@ def _migrate():
         # ── score_runs: add company_ids ───────────────────────────────────────
         if "company_ids" not in cols("score_runs"):
             conn.execute(text("ALTER TABLE score_runs ADD COLUMN company_ids JSON"))
+
+        # ── job_listings: add last_seen_at ────────────────────────────────────
+        if "last_seen_at" not in cols("job_listings"):
+            conn.execute(text("ALTER TABLE job_listings ADD COLUMN last_seen_at DATETIME"))
+            conn.execute(text("UPDATE job_listings SET last_seen_at = first_seen_at WHERE last_seen_at IS NULL"))
 
         # ── score_run_logs: create if missing ─────────────────────────────────
         existing_tables = {r[0] for r in conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))}
