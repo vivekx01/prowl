@@ -8,12 +8,13 @@ import Modal from "../components/Modal";
 // ---------------------------------------------------------------------------
 
 const PLATFORM_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  workday:    { bg: "bg-blue-500/10",   text: "text-blue-400",   dot: "bg-blue-500" },
-  linkedin:   { bg: "bg-sky-500/10",    text: "text-sky-400",    dot: "bg-sky-500" },
-  naukri:     { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-500" },
-  greenhouse: { bg: "bg-green-500/10",  text: "text-green-400",  dot: "bg-green-500" },
-  oracle_hcm: { bg: "bg-red-500/10",    text: "text-red-400",    dot: "bg-red-500" },
-  lever:      { bg: "bg-rose-500/10",   text: "text-rose-400",   dot: "bg-rose-500" },
+  workday:          { bg: "bg-blue-500/10",    text: "text-blue-400",    dot: "bg-blue-500" },
+  linkedin:         { bg: "bg-sky-500/10",     text: "text-sky-400",     dot: "bg-sky-500" },
+  naukri:           { bg: "bg-orange-500/10",  text: "text-orange-400",  dot: "bg-orange-500" },
+  greenhouse:       { bg: "bg-green-500/10",   text: "text-green-400",   dot: "bg-green-500" },
+  oracle_hcm:       { bg: "bg-red-500/10",     text: "text-red-400",     dot: "bg-red-500" },
+  lever:            { bg: "bg-rose-500/10",    text: "text-rose-400",    dot: "bg-rose-500" },
+  smartrecruiters:  { bg: "bg-purple-500/10",  text: "text-purple-400",  dot: "bg-purple-500" },
 };
 
 function getDisplayUrl(platform: string, config: Record<string, unknown>): string {
@@ -23,6 +24,8 @@ function getDisplayUrl(platform: string, config: Record<string, unknown>): strin
     return `https://api.lever.co/v0/postings/${config.slug}?mode=json`;
   if (platform === "oracle_hcm" && config.domain && config.site_number)
     return `https://${config.domain}/hcmUI/CandidateExperience/en/sites/${config.site_number}/jobs`;
+  if (platform === "smartrecruiters" && config.slug)
+    return `https://api.smartrecruiters.com/v1/companies/${config.slug}/postings`;
   return String(config.listing_endpoint ?? Object.values(config)[0] ?? "");
 }
 
@@ -436,10 +439,11 @@ interface FieldDef {
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
-  workday:    "Workday",
-  greenhouse: "Greenhouse",
-  lever:      "Lever",
-  oracle_hcm: "Oracle HCM",
+  workday:         "Workday",
+  greenhouse:      "Greenhouse",
+  lever:           "Lever",
+  oracle_hcm:      "Oracle HCM",
+  smartrecruiters: "SmartRecruiters",
 };
 
 function platformLabel(p: string): string {
@@ -461,6 +465,9 @@ const PLATFORM_FIELDS: Record<string, FieldDef[]> = {
   ],
   oracle_hcm: [
     { key: "url", label: "Careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", required: true, hint: "Any URL from the Oracle HCM portal — domain and site number are auto-detected" },
+  ],
+  smartrecruiters: [
+    { key: "slug", label: "SmartRecruiters company slug", placeholder: "BoschGroup", required: true, hint: "The identifier from careers.smartrecruiters.com/<slug>" },
   ],
   oracle_hcm_edit: [
     { key: "url", label: "New careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", hint: "Leave blank to keep existing config. Paste a new URL to re-resolve." },
