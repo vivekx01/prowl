@@ -13,7 +13,7 @@ from config import now_ist
 from db.database import SessionLocal
 from db.models import Company, JobListing, JobScore, Profile, ScoreRun, ScoreRunLog
 from llm.filter import JobFilter
-from scrapers.base import JobListing as ScraperListing, is_india_or_remote
+from scrapers.base import JobListing as ScraperListing, is_clearly_foreign
 
 
 def _load_model_config(db: Session) -> dict:
@@ -194,8 +194,8 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
             # Stage 2 — deep score using stored description
             matches = 0
             for sl in candidates:
-                # Hard location gate: skip if we have a location and it's clearly non-India/remote
-                if sl.location and not is_india_or_remote(sl.location):
+                # Hard location gate: skip only when location is unambiguously non-India
+                if is_clearly_foreign(sl.location):
                     db.add(JobScore(listing_id=sl.raw["_db_id"], user_id=user_id, score=0.0, verdict="skip", reason="location not India or remote"))
                     db.commit()
                     continue

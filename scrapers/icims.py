@@ -5,7 +5,7 @@ from xml.etree import ElementTree as ET
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 import config
-from .base import BaseScraper, JobListing, is_india_or_remote
+from .base import BaseScraper, JobListing, is_india_or_remote, is_clearly_foreign
 
 HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -113,7 +113,7 @@ class IcimsScraper(BaseScraper):
         job_loc_type = jsonld.get("jobLocationType", "")
         is_remote = job_loc_type == "TELECOMMUTE"
 
-        if not is_remote and not is_india_or_remote(location_str, country):
+        if not is_remote and not is_india_or_remote(location_str, country) and is_clearly_foreign(location_str):
             return None
 
         description = _strip_html(jsonld.get("description", ""))

@@ -127,8 +127,15 @@ STEP 2 — Score each dimension out of 10:
 STEP 3 — Compute weighted score:
   score = round(A×0.40 + B×0.30 + C×0.20 + D×0.10, 1)
 
+LOCATION CHECK (apply before verdict):
+  The candidate is based in India and is only looking for roles in India or fully remote roles. \
+  Check the provided location field AND the job description for location signals. \
+  • India location or fully remote → no penalty, proceed to verdict normally. \
+  • Outside India, hybrid/on-site → hard blocker: set verdict to "skip" regardless of score. \
+  • Location blank/ambiguous → do not penalise; treat as potentially remote or India.
+
 VERDICT:
-  "apply"  — score ≥ 7.0 AND no hard blockers (e.g. completely wrong tech stack, wrong role type)
+  "apply"  — score ≥ 7.0 AND no hard blockers (wrong tech stack, wrong role type, or non-India non-remote location)
   "skip"   — everything else
 
 CALIBRATION — use the full range, do not compress scores into a narrow band:
@@ -156,6 +163,8 @@ STAGE2_USER_TMPL = """\
 {profile}
 
 ## Job: {title} at {company}
+Location: {location}
+
 {description}
 """
 
@@ -247,6 +256,7 @@ class JobFilter:
                 profile=self.profile,
                 title=listing.title,
                 company=listing.company,
+                location=listing.location or "not specified",
                 description=listing.description or "(no description available)",
             )),
         ]

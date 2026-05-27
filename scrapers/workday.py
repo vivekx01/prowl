@@ -4,7 +4,7 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 import config
-from .base import BaseScraper, JobListing, is_india_or_remote
+from .base import BaseScraper, JobListing, is_clearly_foreign
 
 HEADERS = {
     "Accept": "application/json",
@@ -77,7 +77,7 @@ class WorkdayScraper(BaseScraper):
 
             for p in postings:
                 location = p.get("locationsText", "")
-                if not is_india_or_remote(location):
+                if is_clearly_foreign(location):
                     continue
 
                 external_path = p.get("externalPath", "")
