@@ -3,7 +3,7 @@ from html.parser import HTMLParser
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 import config
-from .base import BaseScraper, JobListing
+from .base import BaseScraper, JobListing, is_india_or_remote
 
 GREENHOUSE_BASE = "https://boards-api.greenhouse.io/v1/boards"
 
@@ -53,6 +53,8 @@ class GreenhouseScraper(BaseScraper):
             job_id = str(job.get("id", ""))
             loc = job.get("location")
             location = loc.get("name", "") if isinstance(loc, dict) else ""
+            if not is_india_or_remote(location):
+                continue
             departments = job.get("departments") or []
             department = departments[0].get("name", "") if departments else ""
             updated_at = job.get("updated_at", "")
