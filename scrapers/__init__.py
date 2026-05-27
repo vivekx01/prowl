@@ -4,6 +4,8 @@ from scrapers.greenhouse import GreenhouseScraper
 from scrapers.lever import LeverScraper
 from scrapers.oracle_hcm import OracleHCMScraper
 from scrapers.smartrecruiters import SmartRecruitersScraper
+from scrapers.icims import IcimsScraper
+from scrapers.ashby import AshbyScraper
 
 # Map platform slug → scraper class.
 # To add a new scraper: implement BaseScraper and register it here.
@@ -13,6 +15,8 @@ REGISTRY: dict[str, type[BaseScraper]] = {
     "lever": LeverScraper,
     "oracle_hcm": OracleHCMScraper,
     "smartrecruiters": SmartRecruitersScraper,
+    "icims": IcimsScraper,
+    "ashby": AshbyScraper,
 }
 
 

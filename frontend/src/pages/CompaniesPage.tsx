@@ -15,6 +15,8 @@ const PLATFORM_COLORS: Record<string, { bg: string; text: string; dot: string }>
   oracle_hcm:       { bg: "bg-red-500/10",     text: "text-red-400",     dot: "bg-red-500" },
   lever:            { bg: "bg-rose-500/10",    text: "text-rose-400",    dot: "bg-rose-500" },
   smartrecruiters:  { bg: "bg-purple-500/10",  text: "text-purple-400",  dot: "bg-purple-500" },
+  icims:            { bg: "bg-teal-500/10",    text: "text-teal-400",    dot: "bg-teal-500" },
+  ashby:            { bg: "bg-amber-500/10",   text: "text-amber-400",   dot: "bg-amber-500" },
 };
 
 function getDisplayUrl(platform: string, config: Record<string, unknown>): string {
@@ -26,6 +28,12 @@ function getDisplayUrl(platform: string, config: Record<string, unknown>): strin
     return `https://${config.domain}/hcmUI/CandidateExperience/en/sites/${config.site_number}/jobs`;
   if (platform === "smartrecruiters" && config.slug)
     return `https://api.smartrecruiters.com/v1/companies/${config.slug}/postings`;
+  if (platform === "icims") {
+    const host = config.host || (config.slug ? `careers-${config.slug}.icims.com` : "");
+    return host ? `https://${host}/sitemap.xml` : "";
+  }
+  if (platform === "ashby" && config.slug)
+    return `https://api.ashbyhq.com/posting-api/job-board/${config.slug}`;
   return String(config.listing_endpoint ?? Object.values(config)[0] ?? "");
 }
 
@@ -444,6 +452,8 @@ const PLATFORM_LABELS: Record<string, string> = {
   lever:           "Lever",
   oracle_hcm:      "Oracle HCM",
   smartrecruiters: "SmartRecruiters",
+  icims:           "iCIMS",
+  ashby:           "Ashby",
 };
 
 function platformLabel(p: string): string {
@@ -468,6 +478,13 @@ const PLATFORM_FIELDS: Record<string, FieldDef[]> = {
   ],
   smartrecruiters: [
     { key: "slug", label: "SmartRecruiters company slug", placeholder: "BoschGroup", required: true, hint: "The identifier from careers.smartrecruiters.com/<slug>" },
+  ],
+  icims: [
+    { key: "slug", label: "iCIMS slug", placeholder: "nrdc", hint: "From careers-{slug}.icims.com — check the URL on their job site" },
+    { key: "host", label: "Custom host (optional)", placeholder: "uscareers-docusign.icims.com", hint: "Only if subdomain isn't careers-{slug}.icims.com" },
+  ],
+  ashby: [
+    { key: "slug", label: "Ashby board slug", placeholder: "notion", required: true, hint: "The slug from jobs.ashbyhq.com/<slug>" },
   ],
   oracle_hcm_edit: [
     { key: "url", label: "New careers page URL", placeholder: "https://company.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs", hint: "Leave blank to keep existing config. Paste a new URL to re-resolve." },
