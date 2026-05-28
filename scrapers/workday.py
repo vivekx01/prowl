@@ -4,7 +4,7 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 import config
-from .base import BaseScraper, JobListing, is_clearly_foreign
+from .base import BaseScraper, JobListing
 
 HEADERS = {
     "Accept": "application/json",
@@ -76,10 +76,6 @@ class WorkdayScraper(BaseScraper):
                 break
 
             for p in postings:
-                location = p.get("locationsText", "")
-                if is_clearly_foreign(location):
-                    continue
-
                 external_path = p.get("externalPath", "")
                 # Public apply URL: base_careers_page + externalPath
                 public_url = (base_careers_url + external_path) if base_careers_url else (
@@ -92,7 +88,7 @@ class WorkdayScraper(BaseScraper):
                     company=company,
                     title=p.get("title", ""),
                     job_id=p.get("jobReqId", "") or external_path.split("/")[-1],
-                    location=location,
+                    location=p.get("locationsText", ""),
                     posted_on=p.get("postedOn", ""),
                     url=public_url,
                     department=p.get("jobFamilyGroup", ""),

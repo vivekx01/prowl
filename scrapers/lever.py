@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 import config
-from .base import BaseScraper, JobListing, is_india_or_remote, is_clearly_foreign
+from .base import BaseScraper, JobListing, is_india_or_remote
 
 LEVER_BASE = "https://api.lever.co/v0/postings"
 
@@ -57,7 +57,7 @@ class LeverScraper(BaseScraper):
             cats = job.get("categories") or {}
             location = cats.get("location", "")
             country = job.get("country", "")
-            if not is_india_or_remote(location, country) and is_clearly_foreign(location):
+            if not is_india_or_remote(location, country):
                 continue
 
             created_ms = job.get("createdAt", 0)
