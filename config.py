@@ -15,11 +15,8 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).parent
 COMPANIES_CSV = BASE_DIR / "companies" / "companies.csv"
-PROFILE_PATH = BASE_DIR / "profiles" / "my_profile.md"
-RESULTS_DIR = BASE_DIR / "data" / "results"
-DB_PATH = BASE_DIR / "data" / "jobs.db"
 
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "prowl-secret-key-change-in-production")
@@ -28,8 +25,8 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
-FILTER_MODEL    = os.getenv("FILTER_MODEL",    "google/gemini-2.5-flash-lite")
-SCORE_MODEL     = os.getenv("SCORE_MODEL",     "google/gemini-2.5-flash")
+FILTER_MODEL    = os.getenv("FILTER_MODEL",    "openai/gpt-4o-mini")
+SCORE_MODEL     = os.getenv("SCORE_MODEL",     "nvidia/nemotron-3-super-120b-a12b")
 INSIGHTS_MODEL  = os.getenv("INSIGHTS_MODEL",  "openai/gpt-4o-mini")
 
 # Pricing per million tokens (USD) — override via env vars to match your actual models
@@ -47,7 +44,5 @@ REQUEST_DELAY = float(os.getenv("REQUEST_DELAY", "1.5"))
 MAX_JOBS_PER_COMPANY = int(os.getenv("MAX_JOBS_PER_COMPANY", "200"))
 
 REQUEST_TIMEOUT = 30
-LISTING_RETENTION_DAYS = int(os.getenv("LISTING_RETENTION_DAYS", "60"))
+LISTING_RETENTION_DAYS = int(os.getenv("LISTING_RETENTION_DAYS", "15"))
 
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)

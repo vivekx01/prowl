@@ -3,6 +3,8 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 import config
 
+if not config.DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required")
 _is_sqlite = config.DATABASE_URL.startswith("sqlite")
 
 engine = create_engine(

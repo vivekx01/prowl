@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import config
 from db.database import init_db, SessionLocal
-from runner import seed_companies_from_csv, seed_defaults, seed_admin_user
+from runner import seed_companies_from_csv, seed_admin_user
 from api.routers import companies, jobs, applications, profile, scraper, runs, insights
 from api.routers import auth, score, admin, listings, pounce
 
@@ -19,7 +19,6 @@ async def lifespan(app: FastAPI):
         if seeded:
             print(f"[startup] Imported {seeded} companies from CSV")
         seed_admin_user(db)
-        seed_defaults(db)
     finally:
         db.close()
     yield

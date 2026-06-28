@@ -88,12 +88,6 @@ def seed_admin_user(db: Session):
     print(f"[startup] Created {config.ADMIN_EMAIL}")
 
 
-def seed_defaults(db: Session):
-    if not db.query(Profile).first():
-        profile_path = Path(config.PROFILE_PATH)
-        if profile_path.exists():
-            db.add(Profile(content=profile_path.read_text(encoding="utf-8"), user_id=None))
-    db.commit()
 
 
 # ---------------------------------------------------------------------------

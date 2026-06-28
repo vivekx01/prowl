@@ -202,17 +202,39 @@ Token costs are tracked per run and displayed in the UI (USD and INR).
 
 ## 📣 Telegram Notifications
 
-Prowl can push top-matched job alerts to Telegram after each scoring run via a [Nexus](https://github.com/your-nexus-repo) relay service.
+Prowl does not send Telegram messages directly. Instead, after each scoring run it POSTs matched jobs to a webhook URL you provide. You need to build a small API that receives this payload and forwards it to Telegram using the [Telegram Bot API](https://core.telegram.org/bots/api).
 
-Set in `.env`:
+**What Prowl sends** — a POST request to `NEXUS_NOTIFY_URL` with:
+
+```
+Header: X-Api-Key: <your secret key>
+```
+
+```json
+{
+  "event": "new_matches",
+  "chat_id": "<user's telegram chat id>",
+  "count": 3,
+  "jobs": [
+    { "title": "...", "company": "...", "score": 82, "verdict": "apply", "url": "..." }
+  ],
+  "link": "https://your-prowl-instance.com"
+}
+```
+
+**What you need to build** — a simple HTTP endpoint (any language, any host) that:
+1. Validates the `X-Api-Key` header against a secret you choose
+2. Calls the Telegram Bot API to send a message to the `chat_id` in the payload
+
+Once your webhook is running, set in `.env.production`:
 
 ```env
-NEXUS_NOTIFY_URL=https://your-nexus-instance.com/notify
-NEXUS_API_KEY=your_nexus_api_key
+NEXUS_NOTIFY_URL=https://your-webhook.com/notify
+NEXUS_API_KEY=the_secret_you_chose
 PROWL_URL=https://your-prowl-instance.com
 ```
 
-When a scoring run finds jobs with an `apply` verdict, Prowl sends a notification with the job title, company, score, and a deep link back to the listing in your dashboard.
+Then in Prowl's **Settings** page, enter your Telegram chat ID. Prowl will notify you whenever a scoring run finds `apply`-verdict jobs.
 
 ---
 
