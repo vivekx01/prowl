@@ -127,12 +127,23 @@ Open **http://localhost:5173** and log in with `admin@prowl.app` and your `ADMIN
 
 ## ⚡ First Run
 
-1. **Log in** — Use `admin@prowl.app` with the password you configured
-2. **Upload your profile** — Go to Profile and paste or upload your resume (markdown or PDF)
-3. **Activate companies** — Go to Companies and toggle on the companies you want to scrape
-4. **Scrape** — Go to Scrape (admin), select companies, and start a run
-5. **Score** — Trigger a scoring run once scraping completes; this runs your profile against all fresh listings
-6. **Browse jobs** — Head to the Jobs page and filter by `apply`, `maybe`, or `skip`
+### 1. Log in
+Use `admin@prowl.app` with the password you set during setup.
+
+### 2. Set up your profile
+Go to **Profile** and paste in your resume. This is the single most important step — Prowl scores every job listing against this profile, so the more detailed it is, the better your matches will be. Plain text or markdown works best.
+
+### 3. Activate companies
+Go to **Companies** and toggle on the companies you want to scrape. The list is seeded from `companies/companies.csv` — you can add more from the admin panel.
+
+### 4. Set up a scraping schedule
+Go to **Scrape** and configure a recurring schedule so Prowl automatically pulls fresh listings. You can also trigger a manual run immediately to get started.
+
+### 5. Set up a scoring schedule
+Go to **Users**, find your account, and configure a scoring schedule. This controls when Prowl runs your profile against newly scraped listings. A good pattern is to schedule scoring to run a few hours after scraping so there's always fresh content to process. You can also run scoring manually after any scrape.
+
+### 6. Browse your matches
+Once a scoring run completes, head to **Jobs** and filter by `apply`, `maybe`, or `skip`. Use the **Applications** tab to track anything you want to follow up on.
 
 ---
 
