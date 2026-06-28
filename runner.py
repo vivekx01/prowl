@@ -73,6 +73,21 @@ def seed_companies_from_csv(db: Session) -> int:
     return added
 
 
+def seed_admin_user(db: Session):
+    if db.query(User).count() > 0:
+        return
+    from passlib.context import CryptContext
+    _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    db.add(User(
+        email=config.ADMIN_EMAIL,
+        password_hash=_pwd.hash(config.ADMIN_PASSWORD),
+        name="Admin",
+        is_admin=True,
+    ))
+    db.commit()
+    print(f"[startup] Created {config.ADMIN_EMAIL}")
+
+
 def seed_defaults(db: Session):
     if not db.query(Profile).first():
         profile_path = Path(config.PROFILE_PATH)

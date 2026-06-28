@@ -64,6 +64,7 @@ htmlcov/
 *.db
 data/
 *.csv
+!companies/companies.csv
 
 # Celery Beat runtime state
 celerybeat-schedule

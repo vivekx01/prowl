@@ -29,33 +29,55 @@ fi
 SECRET_KEY=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
 
-# ── Prompt for OpenRouter API key ─────────────────────────────
+# ── Prompt for config ─────────────────────────────────────────
 read -p "Enter your OpenRouter API key: " OPENROUTER_API_KEY
+
+read -p "Enter admin password [admin123]: " ADMIN_PASSWORD
+ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+
+SERVER_IP=$(hostname -I | awk '{print $1}')
+read -p "Enter your server domain or IP [http://${SERVER_IP}]: " PROWL_URL
+PROWL_URL=${PROWL_URL:-http://${SERVER_IP}}
 
 # ── Write .env.production ──────────────────────────────────────
 cat > .env.production <<EOF
-# ── Secrets ────────────────────────────────────────────────────
-OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+# ── Auth ───────────────────────────────────────────────────────
 SECRET_KEY=${SECRET_KEY}
+ADMIN_EMAIL=admin@prowl.app
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
+# ── Database ───────────────────────────────────────────────────
 DATABASE_URL=postgresql://prowl:${POSTGRES_PASSWORD}@db:5432/prowl
-REDIS_URL=redis://redis:6379/0
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-ALLOWED_ORIGINS=*
+# ── Redis ──────────────────────────────────────────────────────
+REDIS_URL=redis://redis:6379/0
+
+# ── CORS ───────────────────────────────────────────────────────
+ALLOWED_ORIGINS=${PROWL_URL}
 
 # ── LLM ────────────────────────────────────────────────────────
-FILTER_MODEL=nvidia/llama-3.1-nemotron-70b-instruct
-SCORE_MODEL=nvidia/llama-3.1-nemotron-70b-instruct
-FILTER_MODEL_PRICE_IN=0.12
-FILTER_MODEL_PRICE_OUT=0.30
-SCORE_MODEL_PRICE_IN=0.12
-SCORE_MODEL_PRICE_OUT=0.30
+OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+FILTER_MODEL=google/gemini-2.5-flash-lite
+SCORE_MODEL=google/gemini-2.5-flash
+INSIGHTS_MODEL=openai/gpt-4o-mini
+
+# ── Pricing per million tokens (USD) ──────────────────────────
+FILTER_MODEL_PRICE_IN=0.15
+FILTER_MODEL_PRICE_OUT=0.60
+SCORE_MODEL_PRICE_IN=0.09
+SCORE_MODEL_PRICE_OUT=0.45
 SCORE_MODEL_CACHE_DISCOUNT=1.0
 
 # ── Scraper ────────────────────────────────────────────────────
 REQUEST_DELAY=1.5
 MAX_JOBS_PER_COMPANY=200
+LISTING_RETENTION_DAYS=60
+
+# ── Telegram notifications (optional) ─────────────────────────
+NEXUS_NOTIFY_URL=
+NEXUS_API_KEY=
+PROWL_URL=${PROWL_URL}
 EOF
 
 echo ".env.production created"
@@ -65,5 +87,8 @@ docker compose --env-file .env.production up -d --build
 
 echo ""
 echo "=== Done ==="
-echo "Prowl is running at http://$(hostname -I | awk '{print $1}')"
-echo "Register your account — the first user gets admin access."
+echo "Prowl is running at ${PROWL_URL}"
+echo "Log in with admin@prowl.app and the password you set."
+echo ""
+echo "To enable Telegram notifications, set NEXUS_NOTIFY_URL and NEXUS_API_KEY in .env.production"
+echo "then run: docker compose --env-file .env.production restart api worker"

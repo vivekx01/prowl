@@ -11,6 +11,23 @@ from api.schemas import ApplicationCreate, ApplicationOut, ApplicationUpdate
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 
+@router.get("/counts")
+def application_counts(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import func
+    rows = (
+        db.query(Application.status, func.count(Application.id))
+        .filter(Application.user_id == user.id)
+        .group_by(Application.status)
+        .all()
+    )
+    counts = {status: count for status, count in rows}
+    counts["all"] = sum(counts.values())
+    return counts
+
+
 @router.get("", response_model=list[ApplicationOut])
 def list_applications(
     user: User = Depends(get_current_user),

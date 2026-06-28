@@ -83,7 +83,11 @@ function JobCard({ job }: { job: Job }) {
       job.application
         ? api.patch(`/applications/${job.application!.id}`, { status }).then(r => r.data)
         : api.post("/applications", { listing_id: job.id, status }).then(r => r.data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["jobs", "applied"] }); setMenuOpen(false); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs", "applied"] });
+      qc.invalidateQueries({ queryKey: ["applications", "counts"] });
+      setMenuOpen(false);
+    },
   });
 
   const tier = job.score ? scoreTier(job.score.score) : null;
@@ -210,17 +214,14 @@ export default function ApplicationsPage() {
     queryKey: ["jobs", "applied"],
     queryFn: () => api.get("/jobs?has_application=true&page_size=200").then(r => r.data),
   });
+  const { data: counts = {} as Record<string, number> } = useQuery<Record<string, number>>({
+    queryKey: ["applications", "counts"],
+    queryFn: () => api.get("/applications/counts").then(r => r.data),
+  });
   const tracked = data?.items ?? [];
   const displayed = tab === "all"
     ? tracked
     : tracked.filter(j => j.application?.status === tab);
-
-  // Count per tab (unaffected by search)
-  const counts: Record<string, number> = { all: tracked.length };
-  for (const j of tracked) {
-    const s = j.application!.status;
-    counts[s] = (counts[s] ?? 0) + 1;
-  }
 
   const q = search.trim().toLowerCase();
   const filtered = q
@@ -243,7 +244,7 @@ export default function ApplicationsPage() {
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Applications</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {tracked.length} tracked · {counts["applied"] ?? 0} applied · {counts["interviewing"] ?? 0} interviewing
+            {counts["all"] ?? 0} tracked · {counts["applied"] ?? 0} applied · {counts["interviewing"] ?? 0} interviewing
           </p>
         </div>
         <div className="relative w-full sm:w-auto">
