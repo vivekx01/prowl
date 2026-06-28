@@ -143,7 +143,7 @@ Go to **Scrape** and configure a recurring schedule so Prowl automatically pulls
 Go to **Users**, find your account, and configure a scoring schedule. This controls when Prowl runs your profile against newly scraped listings. A good pattern is to schedule scoring to run a few hours after scraping so there's always fresh content to process. You can also run scoring manually after any scrape.
 
 ### 6. Browse your matches
-Once a scoring run completes, head to **Jobs** and filter by `apply`, `maybe`, or `skip`. Use the **Applications** tab to track anything you want to follow up on.
+Once a scoring run completes, head to **Recommendations** to see your top-matched listings. Use the **Applications** tab to track anything you want to follow up on.
 
 ---
 
