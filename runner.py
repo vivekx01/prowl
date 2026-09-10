@@ -54,19 +54,14 @@ def seed_companies_from_csv(db: Session) -> int:
         reader = csv.DictReader(f)
         reader.fieldnames = [h.strip() for h in reader.fieldnames]
         for row in reader:
-            endpoint = row.get("Job listing fetch", "").strip()
-            if not endpoint:
+            name = row.get("name", "").strip()
+            if not name:
                 continue
             db.add(Company(
-                name=row["Company Name"].strip(),
-                platform="workday",
-                active=True,
-                config={
-                    "listing_endpoint": endpoint,
-                    "payload": row.get("Payload", "{}") or "{}",
-                    "jd_base": row.get("JD page base", "").strip(),
-                    "base_careers_url": row.get("Base careers page", "").strip(),
-                },
+                name=name,
+                platform=row.get("platform", "").strip() or "workday",
+                active=row.get("active", "true").strip().lower() == "true",
+                config=json.loads(row.get("config") or "{}"),
             ))
             added += 1
     db.commit()
@@ -167,9 +162,13 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
     total_companies = run.companies_total
     log(f"Starting scrape run: {total_companies} companies")
 
-    purged = cleanup_old_listings(db)
-    if purged:
-        log(f"Purged {purged} listings older than {config.LISTING_RETENTION_DAYS} days")
+    try:
+        purged = cleanup_old_listings(db)
+        if purged:
+            log(f"Purged {purged} listings older than {config.LISTING_RETENTION_DAYS} days")
+    except Exception as e:
+        db.rollback()
+        log(f"Cleanup error (continuing): {e}", "error")
 
     total_new = run.new_listings
     company_index = len(completed_ids)

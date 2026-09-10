@@ -24,7 +24,7 @@ def score_task(self, run_id: int, user_id: int, company_ids: list[int] | None = 
 def cleanup_old_listings():
     from datetime import timedelta
     from db.database import SessionLocal
-    from db.models import Application, JobListing, JobScore, PounceRun
+    from db.models import Application, JobListing, JobScore
     from config import now_ist
 
     from config import LISTING_RETENTION_DAYS
@@ -34,7 +34,6 @@ def cleanup_old_listings():
 
         protected = set()
         protected.update(r[0] for r in db.query(Application.listing_id).all())
-        protected.update(r[0] for r in db.query(PounceRun.listing_id).filter(PounceRun.listing_id.isnot(None)).all())
 
         ids = [
             r[0] for r in db.query(JobListing.id).filter(JobListing.last_seen_at < cutoff).all()
