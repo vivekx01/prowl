@@ -14,6 +14,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    networks:
+      - default
+      - coolify
 
   worker:
     build: .
@@ -30,6 +33,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    networks:
+      - default
+      - coolify
 
   beat:
     build: .
@@ -46,6 +52,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    networks:
+      - default
+      - coolify
 
   nginx:
     build:
@@ -54,3 +63,7 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+
+networks:
+  coolify:
+    external: true
