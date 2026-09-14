@@ -4,6 +4,7 @@ All data comes from the DB — no web calls. Descriptions are stored at scrape t
 """
 
 import asyncio
+import traceback
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
@@ -259,9 +260,10 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
             await notify_new_matches(user_id, notify_matches_sorted, db)
 
     except Exception as e:
-        print(f"[score run {run_id}] fatal: {e}")
+        tb = traceback.format_exc()
+        print(f"[score run {run_id}] fatal: {type(e).__name__}: {e!r}\n{tb}")
         run.status = "failed"
-        _log(db, run_id, f"Fatal error: {e}", "error")
+        _log(db, run_id, f"Fatal error: {type(e).__name__}: {e!r}", "error")
 
     finally:
         run.finished_at = now_ist()

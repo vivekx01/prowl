@@ -32,6 +32,7 @@ def _make_llm(model: str) -> ChatOpenRouter:
         model=model,
         openrouter_api_key=config.OPENROUTER_API_KEY,
         temperature=0,
+        timeout=90_000,  # ms — fail a stuck request fast instead of stalling the whole retry budget
     )
 
 
