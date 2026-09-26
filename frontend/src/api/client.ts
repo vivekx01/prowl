@@ -155,6 +155,7 @@ export interface ModelConfig {
   score_model_price_in: number;
   score_model_price_out: number;
   score_model_cache_discount: number;
+  score_threshold: number;
 }
 
 export interface AdminScoreRun {

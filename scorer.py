@@ -28,6 +28,7 @@ def _load_model_config(db: Session) -> dict:
         "model.score_price_in":         str(config.SCORE_MODEL_PRICE_IN),
         "model.score_price_out":        str(config.SCORE_MODEL_PRICE_OUT),
         "model.score_cache_discount":   str(config.SCORE_MODEL_CACHE_DISCOUNT),
+        "model.score_threshold":        str(config.SCORE_THRESHOLD),
     }
     rows = {
         r.key: r.value
@@ -46,6 +47,7 @@ def _load_model_config(db: Session) -> dict:
         "score_price_in":       float(_get("model.score_price_in")),
         "score_price_out":      float(_get("model.score_price_out")),
         "score_cache_discount": float(_get("model.score_cache_discount")),
+        "score_threshold":      float(_get("model.score_threshold")),
     }
 
 
@@ -102,7 +104,12 @@ async def _score(db: Session, run_id: int, user_id: int, company_ids: list[int] 
     _log(db, run_id, f"Starting score run: {len(companies)} companies, days_back={run.days_back or 'all'}")
 
     model_cfg = _load_model_config(db)
-    job_filter = JobFilter(profile.content, filter_model=model_cfg["filter_model"], score_model=model_cfg["score_model"])
+    job_filter = JobFilter(
+        profile.content,
+        filter_model=model_cfg["filter_model"],
+        score_model=model_cfg["score_model"],
+        score_threshold=model_cfg["score_threshold"],
+    )
     await job_filter.warm_up()
     _log(db, run_id, f"  compact profile: {job_filter._compact_profile}")
     results: list[dict] = []

@@ -136,7 +136,7 @@ LOCATION CHECK (apply before verdict):
   • Location blank/ambiguous → do not penalise; treat as potentially remote or India.
 
 VERDICT:
-  "apply"  — score ≥ 7.0 AND no hard blockers (wrong tech stack, wrong role type, or non-India non-remote location)
+  "apply"  — score ≥ {threshold} AND no hard blockers (wrong tech stack, wrong role type, or non-India non-remote location)
   "skip"   — everything else
 
 CALIBRATION — use the full range, do not compress scores into a narrow band:
@@ -185,11 +185,19 @@ Profile:
 
 
 class JobFilter:
-    def __init__(self, profile: str, filter_model: str | None = None, score_model: str | None = None):
+    def __init__(
+        self,
+        profile: str,
+        filter_model: str | None = None,
+        score_model: str | None = None,
+        score_threshold: float | None = None,
+    ):
         self.profile = profile
         self._compact_profile = profile  # replaced by warm_up(); full profile is safe fallback
         self._filter_llm = _make_llm(filter_model or config.FILTER_MODEL)
         self._score_llm = _make_llm(score_model or config.SCORE_MODEL)
+        self.score_threshold = score_threshold if score_threshold is not None else config.SCORE_THRESHOLD
+        self._stage2_system = STAGE2_SYSTEM.format(threshold=f"{self.score_threshold:.1f}")
         self._filter_input_tokens = 0
         self._filter_output_tokens = 0
         self._score_input_tokens = 0
@@ -252,7 +260,7 @@ class JobFilter:
     async def stage2_score(self, listing: JobListing) -> dict:
         """Score a single listing that already has description filled in."""
         messages = [
-            SystemMessage(content=STAGE2_SYSTEM),
+            SystemMessage(content=self._stage2_system),
             HumanMessage(content=STAGE2_USER_TMPL.format(
                 profile=self.profile,
                 title=listing.title,

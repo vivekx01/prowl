@@ -281,7 +281,7 @@ function ModelConfigSection() {
     setForm((f) => f ? { ...f, [key]: val } : f);
   }
 
-  function numInput(key: keyof ModelConfig, label: string) {
+  function numInput(key: keyof ModelConfig, label: string, opts?: { step?: string; min?: number; max?: number }) {
     const val = form ? (form[key] as number) : 0;
     return (
       <div>
@@ -289,8 +289,9 @@ function ModelConfigSection() {
         <input
           type="number"
           value={val}
-          step="0.0001"
-          min={0}
+          step={opts?.step ?? "0.0001"}
+          min={opts?.min ?? 0}
+          max={opts?.max}
           onChange={(e) => setField(key, parseFloat(e.target.value) || 0 as any)}
           className="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-violet-500/60 tabular-nums"
         />
@@ -348,30 +349,42 @@ function ModelConfigSection() {
       {isLoading || !form ? (
         <p className="text-xs text-slate-600">Loading…</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Stage 1 */}
-          <div className="space-y-3 p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
-              Stage 1 — Filter Model
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg max-w-xs">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3">
+              Apply Threshold
             </p>
-            {textInput("filter_model", "Model ID", "e.g. google/gemini-2.5-flash-lite")}
-            <div className="grid grid-cols-2 gap-3">
-              {numInput("filter_model_price_in", "Input price ($/M tokens)")}
-              {numInput("filter_model_price_out", "Output price ($/M tokens)")}
-            </div>
+            {numInput("score_threshold", "Min score to verdict \"apply\" (1.0–10.0)", { step: "0.1", min: 1, max: 10 })}
+            <p className="text-[11px] text-slate-600 mt-2">
+              Jobs scoring at or above this are marked "apply" and trigger a Telegram notification.
+            </p>
           </div>
 
-          {/* Stage 2 */}
-          <div className="space-y-3 p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
-              Stage 2 — Score Model
-            </p>
-            {textInput("score_model", "Model ID", "e.g. google/gemini-2.5-flash")}
-            <div className="grid grid-cols-2 gap-3">
-              {numInput("score_model_price_in", "Input price ($/M tokens)")}
-              {numInput("score_model_price_out", "Output price ($/M tokens)")}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Stage 1 */}
+            <div className="space-y-3 p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+                Stage 1 — Filter Model
+              </p>
+              {textInput("filter_model", "Model ID", "e.g. google/gemini-2.5-flash-lite")}
+              <div className="grid grid-cols-2 gap-3">
+                {numInput("filter_model_price_in", "Input price ($/M tokens)")}
+                {numInput("filter_model_price_out", "Output price ($/M tokens)")}
+              </div>
             </div>
-            {numInput("score_model_cache_discount", "Cache discount multiplier (1.0 = no discount)")}
+
+            {/* Stage 2 */}
+            <div className="space-y-3 p-4 bg-slate-800/40 border border-slate-700/50 rounded-lg">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+                Stage 2 — Score Model
+              </p>
+              {textInput("score_model", "Model ID", "e.g. google/gemini-2.5-flash")}
+              <div className="grid grid-cols-2 gap-3">
+                {numInput("score_model_price_in", "Input price ($/M tokens)")}
+                {numInput("score_model_price_out", "Output price ($/M tokens)")}
+              </div>
+              {numInput("score_model_cache_discount", "Cache discount multiplier (1.0 = no discount)")}
+            </div>
           </div>
         </div>
       )}

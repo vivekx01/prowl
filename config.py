@@ -29,6 +29,9 @@ FILTER_MODEL    = os.getenv("FILTER_MODEL",    "openai/gpt-4o-mini")
 SCORE_MODEL     = os.getenv("SCORE_MODEL",     "nvidia/nemotron-3-super-120b-a12b")
 INSIGHTS_MODEL  = os.getenv("INSIGHTS_MODEL",  "openai/gpt-4o-mini")
 
+# Minimum stage-2 score (1.0-10.0) for a job to be verdicted "apply" and trigger a notification
+SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "7.0"))
+
 # Pricing per million tokens (USD) — override via env vars to match your actual models
 FILTER_MODEL_PRICE_IN      = float(os.getenv("FILTER_MODEL_PRICE_IN",      "0.15"))
 FILTER_MODEL_PRICE_OUT     = float(os.getenv("FILTER_MODEL_PRICE_OUT",     "0.60"))

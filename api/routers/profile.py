@@ -136,7 +136,9 @@ async def score_jd(
         url="",
         description=body.description,
     )
-    job_filter = JobFilter(profile.content)
+    from scorer import _load_model_config
+    model_cfg = _load_model_config(db)
+    job_filter = JobFilter(profile.content, score_threshold=model_cfg["score_threshold"])
     result = await job_filter.stage2_score(listing)
     if result is None:
         raise HTTPException(502, "LLM returned unparseable response — try again")

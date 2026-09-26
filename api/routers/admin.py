@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import config as cfg
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -557,6 +557,7 @@ class ModelConfig(BaseModel):
     score_model_price_in: float
     score_model_price_out: float
     score_model_cache_discount: float
+    score_threshold: float = Field(ge=1.0, le=10.0)
 
 
 _MODEL_SETTING_KEYS = {
@@ -567,6 +568,7 @@ _MODEL_SETTING_KEYS = {
     "score_model_price_in":     "model.score_price_in",
     "score_model_price_out":    "model.score_price_out",
     "score_model_cache_discount": "model.score_cache_discount",
+    "score_threshold":          "model.score_threshold",
 }
 
 _MODEL_CONFIG_DEFAULTS = {
@@ -577,6 +579,7 @@ _MODEL_CONFIG_DEFAULTS = {
     "model.score_price_in":         lambda: str(cfg.SCORE_MODEL_PRICE_IN),
     "model.score_price_out":        lambda: str(cfg.SCORE_MODEL_PRICE_OUT),
     "model.score_cache_discount":   lambda: str(cfg.SCORE_MODEL_CACHE_DISCOUNT),
+    "model.score_threshold":        lambda: str(cfg.SCORE_THRESHOLD),
 }
 
 
@@ -600,6 +603,7 @@ def _read_model_config(db: Session) -> ModelConfig:
         score_model_price_in=float(_get("model.score_price_in")),
         score_model_price_out=float(_get("model.score_price_out")),
         score_model_cache_discount=float(_get("model.score_cache_discount")),
+        score_threshold=float(_get("model.score_threshold")),
     )
 
 
@@ -625,6 +629,7 @@ def update_model_config(
         "model.score_price_in":         str(body.score_model_price_in),
         "model.score_price_out":        str(body.score_model_price_out),
         "model.score_cache_discount":   str(body.score_model_cache_discount),
+        "model.score_threshold":        str(body.score_threshold),
     }
     existing = {
         r.key: r
