@@ -7,7 +7,7 @@ pandas
 asyncio
 tenacity
 questionary
-sqlalchemy
+sqlalchemy<2.1
 psycopg2-binary
 fastapi
 uvicorn[standard]
