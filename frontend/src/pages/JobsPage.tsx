@@ -403,25 +403,29 @@ export default function JobsPage() {
             </div>
           ))}
         </div>
-      ) : displayJobs.length === 0 ? (
-        <div className="card p-16 text-center">
-          <p className="text-slate-400 font-medium">
-            {hiddenCount > 0 ? "All caught up!" : `No ${cfg.label.toLowerCase()} jobs`}
-          </p>
-          <p className="text-sm text-slate-600 mt-1">
-            {hiddenCount > 0
-              ? `${hiddenCount} job${hiddenCount !== 1 ? "s" : ""} already reviewed — switch to "All" to see them.`
-              : filter === "fresh"
-                ? <><Link to="/scrape" className="text-violet-400 hover:text-violet-300 transition-colors">Run a scrape</Link> to populate listings.</>
-                : "Nothing here yet."
-            }
-          </p>
-        </div>
       ) : (
         <div className="space-y-8">
-          {groups.map(g => (
-            <DateGroup key={g.dateKey} label={g.label} dateKey={g.dateKey} jobs={g.jobs} />
-          ))}
+          {displayJobs.length === 0 ? (
+            <div className="card p-16 text-center">
+              <p className="text-slate-400 font-medium">
+                {hiddenCount > 0 ? "All caught up!" : `No ${cfg.label.toLowerCase()} jobs`}
+              </p>
+              <p className="text-sm text-slate-600 mt-1">
+                {hiddenCount > 0
+                  ? page < totalPages
+                    ? `All ${hiddenCount} job${hiddenCount !== 1 ? "s" : ""} on this page are already reviewed — check the next page for more.`
+                    : `${hiddenCount} job${hiddenCount !== 1 ? "s" : ""} already reviewed — switch to "All" to see them.`
+                  : filter === "fresh"
+                    ? <><Link to="/scrape" className="text-violet-400 hover:text-violet-300 transition-colors">Run a scrape</Link> to populate listings.</>
+                    : "Nothing here yet."
+                }
+              </p>
+            </div>
+          ) : (
+            groups.map(g => (
+              <DateGroup key={g.dateKey} label={g.label} dateKey={g.dateKey} jobs={g.jobs} />
+            ))
+          )}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
