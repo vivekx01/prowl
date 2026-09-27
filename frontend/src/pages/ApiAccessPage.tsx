@@ -24,15 +24,15 @@ export API_KEY="YOUR_API_KEY"
 
 ## 1. Get recommended jobs
 
-\`GET /api/jobs\`
+\`GET /api/jobs/recommended\`
 
-Returns your scored job matches — title, apply URL, the portal it's hosted on (\`workday\`, \`greenhouse\`, \`lever\`, \`oracle_hcm\`), the AI score/verdict, and the current application status.
+Purpose-built for bots: no params needed, no filtering logic to reimplement. It always returns just the jobs the AI verdicted \`apply\` that you **haven't already applied to** (no \`application\` record, or one still sitting at \`saved\`) — best match first. Nothing already applied, rejected, or skipped ever shows up here.
 
-**Query parameters**
+**Query parameters** (all optional)
 
 | Param | Description |
 |---|---|
-| \`verdict\` | \`apply\` or \`skip\` — the AI's recommendation. Jobs verdicted \`apply\` already scored above the configured threshold. |
+| \`score_min\` | Only jobs scored at or above this (0–10) |
 | \`company_id\` | Restrict to one company |
 | \`search\` | Search by job title or company name |
 | \`page\`, \`page_size\` | Pagination — default 50/page |
@@ -40,7 +40,7 @@ Returns your scored job matches — title, apply URL, the portal it's hosted on 
 **Request**
 
 \`\`\`bash
-curl "$PROWL_URL/api/jobs?verdict=apply" \\
+curl "$PROWL_URL/api/jobs/recommended" \\
   -H "X-API-Key: $API_KEY"
 \`\`\`
 
@@ -64,13 +64,13 @@ curl "$PROWL_URL/api/jobs?verdict=apply" \\
 }
 \`\`\`
 
-If \`application\` is \`null\`, the job isn't tracked yet — use **POST** below. If it's an object, use **PATCH** with its \`id\`.
+Every item here is fair game to apply to. Use \`id\` as \`listing_id\` and, if present, \`application.id\` in step 2 below.
 
 ## 2. Mark a job as applied
 
-Which endpoint you call depends on whether the job already has an \`application\` record.
+Which endpoint you call depends on whether the job already has an \`application\` record (i.e. \`application\` was \`null\` vs. an object in step 1).
 
-**Not tracked yet — POST**
+**\`application\` was \`null\` — POST**
 
 \`\`\`bash
 curl -X POST "$PROWL_URL/api/applications" \\
@@ -79,7 +79,7 @@ curl -X POST "$PROWL_URL/api/applications" \\
   -d '{"listing_id": 4821, "status": "applied"}'
 \`\`\`
 
-**Already tracked — PATCH**
+**\`application\` was an object — PATCH**
 
 \`\`\`bash
 curl -X PATCH "$PROWL_URL/api/applications/<application_id>" \\
@@ -92,9 +92,9 @@ Supported \`status\` values: ${statusList}. \`applied_at\` is set automatically 
 
 ## Suggested bot loop
 
-1. \`GET /api/jobs?verdict=apply\`, then filter to items where \`application\` is \`null\` or \`application.status\` is \`"saved"\`.
+1. \`GET /api/jobs/recommended\` — everything returned is untouched and worth applying to.
 2. For each match, open \`url\` and submit the application on the portal.
-3. Call \`POST /api/applications\` (or \`PATCH\` if it's already tracked) with \`status: "applied"\`.
+3. Call \`POST /api/applications\` (or \`PATCH\` if \`application\` was already an object) with \`status: "applied"\`. It drops out of \`/recommended\` on the next call automatically.
 
 ## Scope & security
 

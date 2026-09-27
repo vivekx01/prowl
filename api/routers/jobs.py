@@ -33,7 +33,7 @@ def list_jobs(
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    user: User = Depends(get_current_user_flexible),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     q = (
@@ -67,6 +67,61 @@ def list_jobs(
         )
         if score_min is not None:
             q = q.filter(JobScore.score >= score_min)
+
+    total = q.count()
+    listings = (
+        q.options(
+            joinedload(JobListing.company),
+            selectinload(JobListing.scores),
+            selectinload(JobListing.applications),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return {"total": total, "items": [_serialize(l, user.id) for l in listings]}
+
+
+@router.get("/recommended", response_model=JobsPageOut)
+def list_recommended_jobs(
+    score_min: Optional[float] = Query(None),
+    company_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    user: User = Depends(get_current_user_flexible),
+    db: Session = Depends(get_db),
+):
+    """Jobs the AI recommended (verdict "apply") that haven't been applied to yet.
+
+    No params needed for the common case — just the untracked, freshly
+    recommended jobs, best match first. Meant to be simple enough for a
+    bot to call with zero configuration.
+    """
+    q = (
+        db.query(JobListing)
+        .join(JobScore, (JobScore.listing_id == JobListing.id) & (JobScore.user_id == user.id))
+        .filter(JobScore.verdict == "apply")
+        .outerjoin(
+            Application,
+            (Application.listing_id == JobListing.id) & (Application.user_id == user.id),
+        )
+        .filter(or_(Application.id.is_(None), Application.status == "saved"))
+        .order_by(JobScore.score.desc(), JobListing.first_seen_at.desc())
+    )
+
+    if company_id:
+        q = q.filter(JobListing.company_id == company_id)
+
+    if score_min is not None:
+        q = q.filter(JobScore.score >= score_min)
+
+    if search:
+        term = f"%{search.strip()}%"
+        matching_company_ids = db.query(Company.id).filter(Company.name.ilike(term))
+        q = q.filter(
+            or_(JobListing.title.ilike(term), JobListing.company_id.in_(matching_company_ids))
+        )
 
     total = q.count()
     listings = (
