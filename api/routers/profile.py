@@ -100,7 +100,7 @@ async def test_notification(
         ],
         "link": config.PROWL_URL,
     }
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
         try:
             r = await client.post(
                 config.NEXUS_NOTIFY_URL,

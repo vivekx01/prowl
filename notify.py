@@ -20,12 +20,14 @@ async def notify_new_matches(user_id: int, matches: list[dict], db) -> None:
         "link": config.PROWL_URL,
     }
 
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
         try:
-            await client.post(
+            r = await client.post(
                 config.NEXUS_NOTIFY_URL,
                 json=payload,
                 headers={"X-Api-Key": config.NEXUS_API_KEY},
             )
+            if r.status_code >= 400:
+                print(f"[notify] Nexus returned {r.status_code}: {r.text}")
         except Exception as e:
             print(f"[notify] failed to send notification: {e}")
