@@ -24,6 +24,20 @@ class User(Base):
     score_runs = relationship("ScoreRun", back_populates="user")
 
 
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    key_hash = Column(String, nullable=False, unique=True)
+    key_prefix = Column(String, nullable=False)
+    label = Column(String, default="")
+    created_at = Column(DateTime, default=now_ist)
+    last_used_at = Column(DateTime, nullable=True)
+
+    user = relationship("User")
+
+
 class Company(Base):
     __tablename__ = "companies"
 

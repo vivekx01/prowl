@@ -8,6 +8,7 @@ import ApplicationsPage from "./pages/ApplicationsPage";
 import InsightsPage from "./pages/InsightsPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import ProfilePage from "./pages/ProfilePage";
+import ApiAccessPage from "./pages/ApiAccessPage";
 import ScrapePage from "./pages/ScrapePage";
 import CheckJDPage from "./pages/CheckJDPage";
 import ScanPage from "./pages/ScanPage";
@@ -51,6 +52,7 @@ export default function App() {
                 <Route path="/prowl-ai" element={<InsightsPage />} />
                 <Route path="/check-jd" element={<CheckJDPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/api-access" element={<ApiAccessPage />} />
 
                 {/* Admin-only */}
                 <Route path="/scrape" element={<RequireAdmin><ScrapePage /></RequireAdmin>} />

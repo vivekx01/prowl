@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from api.deps import get_current_user
+from api.deps import get_current_user, get_current_user_flexible
 from db.database import get_db
 from db.models import Company, JobListing, JobScore, Application, User
 from api.schemas import JobOut, JobsPageOut
@@ -33,7 +33,7 @@ def list_jobs(
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: Session = Depends(get_db),
 ):
     q = (

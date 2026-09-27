@@ -7,7 +7,7 @@ import config
 from db.database import init_db, SessionLocal
 from runner import seed_companies_from_csv, seed_admin_user
 from api.routers import companies, jobs, applications, profile, scraper, runs, insights
-from api.routers import auth, score, admin, listings
+from api.routers import auth, score, admin, listings, api_keys
 
 
 @asynccontextmanager
@@ -44,3 +44,4 @@ app.include_router(insights.router, prefix="/api")
 app.include_router(score.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(listings.router, prefix="/api")
+app.include_router(api_keys.router, prefix="/api")

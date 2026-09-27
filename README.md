@@ -35,7 +35,7 @@
 | Layer | Technology |
 |---|---|
 | Backend | FastAPI, SQLAlchemy, Celery |
-| Database | PostgreSQL (SQLite fallback for dev) |
+| Database | PostgreSQL |
 | Task Queue | Celery + Redis |
 | LLM | OpenRouter API (Gemini Flash, Gemini Flash Lite) |
 | Scraping | HTTPX (async) |

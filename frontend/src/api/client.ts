@@ -93,6 +93,14 @@ export interface JobsPage {
   items: Job[];
 }
 
+export interface ApiKeyInfo {
+  id: number;
+  label: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
 export interface RunLog {
   id: number;
   timestamp: string;

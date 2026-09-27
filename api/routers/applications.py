@@ -3,7 +3,7 @@ from config import now_ist
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-from api.deps import get_current_user
+from api.deps import get_current_user, get_current_user_flexible
 from db.database import get_db
 from db.models import Application, JobListing, User
 from api.schemas import ApplicationCreate, ApplicationOut, ApplicationUpdate
@@ -44,7 +44,7 @@ def list_applications(
 @router.post("", response_model=ApplicationOut, status_code=201)
 def create_application(
     body: ApplicationCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: Session = Depends(get_db),
 ):
     listing = db.get(JobListing, body.listing_id)
@@ -76,7 +76,7 @@ def create_application(
 def update_application(
     app_id: int,
     body: ApplicationUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: Session = Depends(get_db),
 ):
     app = db.get(Application, app_id)

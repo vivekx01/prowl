@@ -5,7 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/api": "http://localhost:8000",
+      // Regex so this only matches "/api/..." — a plain "/api" string key
+      // does a prefix match and would also swallow routes like "/api-access".
+      "^/api/": "http://localhost:8000",
     },
   },
 });

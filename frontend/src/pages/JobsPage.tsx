@@ -9,7 +9,7 @@ import { useAuth } from "../context/AuthContext";
 // Constants
 // ---------------------------------------------------------------------------
 
-const STATUS_OPTIONS = [
+export const STATUS_OPTIONS = [
   "saved", "applied", "interviewing", "rejected",
   "offer", "withdrawn", "not_suitable",
 ] as const;
@@ -35,6 +35,13 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = { not_suitable: "Not suitable" };
+
+const PLATFORM_LABEL: Record<string, string> = {
+  workday: "Workday",
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  oracle_hcm: "Oracle HCM",
+};
 
 // ---------------------------------------------------------------------------
 // Filter config
@@ -221,6 +228,11 @@ function JobCard({ job }: { job: Job }) {
           )}
 
           <div className="mt-3 flex items-center gap-2.5 flex-wrap">
+            {job.platform && (
+              <span className="badge bg-slate-800 text-slate-400 border border-slate-700/60">
+                {PLATFORM_LABEL[job.platform] ?? job.platform}
+              </span>
+            )}
             {job.department && (
               <span className="badge bg-slate-800 text-slate-400 border border-slate-700/60" title={job.department}>{job.department}</span>
             )}

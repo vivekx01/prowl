@@ -47,7 +47,7 @@ Frontend (React/Vite) → FastAPI (api/) → PostgreSQL + Redis
 
 **Auth:** Admin account (`admin@prowl.app`) is auto-created on first startup using `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars. JWT tokens managed via `AuthContext` on frontend, validated in `api/deps.py` on backend.
 
-**Database:** SQLAlchemy ORM in `db/models.py`. No migration framework — tables are created/altered via `init_db()` on startup (`db/database.py`). Add new columns carefully since SQLite (dev) and PostgreSQL (prod) handle `ALTER TABLE` differently.
+**Database:** PostgreSQL only. SQLAlchemy ORM in `db/models.py`. No migration framework — tables are created via `create_all()` and altered via hand-written `ALTER TABLE` statements in `_migrate()` (`db/database.py`), run on every startup.
 
 ## Key Modules
 
@@ -76,7 +76,7 @@ Sends high-scoring job matches to an external Nexus service (`NEXUS_NOTIFY_URL`)
 ## Environment
 
 Copy `.env.example` to `.env` (dev) or `.env.production` (Docker). Key variables:
-- `DATABASE_URL` — defaults to SQLite (`data/jobs.db`) if unset
+- `DATABASE_URL` — PostgreSQL connection string, required
 - `OPENROUTER_API_KEY` — required for scraping and scoring
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — credentials for the auto-created admin account
 - `FILTER_MODEL` / `SCORE_MODEL` — OpenRouter model IDs for two-stage pipeline

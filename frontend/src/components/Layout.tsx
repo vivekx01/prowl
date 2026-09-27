@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { type ReactNode, type ComponentType, useState } from "react";
 import {
   IconJobs, IconScrape, IconCompanies, IconInsights,
-  IconApplications, IconCheckJD, IconScan, IconLogout, IconUsers, IconChart,
+  IconApplications, IconCheckJD, IconScan, IconLogout, IconUsers, IconChart, IconKey,
 } from "./Icons";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,6 +12,7 @@ const userNav = [
   { to: "/applications", label: "Applications", icon: IconApplications },
   { to: "/prowl-ai", label: "Prowl AI", icon: IconInsights },
   { to: "/check-jd", label: "Check JD", icon: IconCheckJD },
+  { to: "/api-access", label: "API Access", icon: IconKey },
   { to: "/profile", label: "Profile", icon: IconUsers },
 ];
 
