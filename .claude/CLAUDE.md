@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 uv sync                                          # Install dependencies
 uv run fastapi dev api/main.py                   # Start API server (localhost:8000, hot reload)
 uv run python main.py                            # Interactive CLI menu (scrape/score)
-celery -A celery_app worker --loglevel=info      # Start Celery worker
-celery -A celery_app beat --loglevel=info        # Start Celery Beat scheduler
+celery -A celery_app worker --loglevel=info -Q scrape,score,default   # Start Celery worker (all queues, for local dev)
+celery -A celery_app beat --loglevel=info                             # Start Celery Beat scheduler
 ```
 
 ### Frontend
@@ -27,7 +27,7 @@ npm run build        # TypeScript + TailwindCSS production build
 ### Docker (Production)
 ```bash
 docker compose --env-file .env.production up -d --build
-docker compose logs -f <service>   # services: db, redis, api, worker, beat, nginx
+docker compose logs -f <service>   # services: db, redis, api, worker-scrape, worker-score, beat, nginx
 docker compose restart <service>
 ```
 
@@ -65,7 +65,7 @@ Two-stage scoring pipeline in `filter.py`:
 Uses OpenRouter API via LangChain. Token costs are tracked per run.
 
 ### `tasks.py` + `celery_app.py`
-All long-running work (scraping, scoring) runs as Celery tasks. Beat schedule: `check_schedule_task` every minute, `cleanup_old_listings` daily at 2 AM IST.
+All long-running work (scraping, scoring) runs as Celery tasks. Beat schedule: `check_schedule_task` every minute, `cleanup_old_listings` daily at 2 AM IST. Scrape and score tasks run on separate queues (`scrape`, `score`; everything else on `default`) via `task_routes` in `celery_app.py`, so a long scoring run for one user can't delay scraping or another user's run — each queue has its own worker pool in production (`docker-compose.yaml`: `worker-scrape`, `worker-score`), independently sized via `CELERY_SCRAPE_CONCURRENCY`/`CELERY_SCORE_CONCURRENCY`.
 
 ### `runner.py` / `scorer.py`
 Orchestration logic called by Celery tasks and the CLI. `runner.py` handles company iteration and scraper dispatch; `scorer.py` manages LLM pipeline execution and cost tracking.

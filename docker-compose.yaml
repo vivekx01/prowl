@@ -18,9 +18,32 @@ services:
       - default
       - coolify
 
-  worker:
+  worker-scrape:
     build: .
-    command: celery -A celery_app worker --loglevel=info --concurrency=1 -I tasks
+    # Scrape runs + the lightweight scheduler/cleanup tasks share this pool so a
+    # long-running scoring job (worker-score) can never delay a scheduled scrape.
+    command: celery -A celery_app worker --loglevel=info --concurrency=${CELERY_SCRAPE_CONCURRENCY:-2} -Q scrape,default -n scrape@%h -I tasks
+    restart: unless-stopped
+    environment:
+      PYTHONPATH: /app
+      TZ: Asia/Kolkata
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      PROWL_URL: ${PROWL_URL}
+    networks:
+      - default
+      - coolify
+
+  worker-score:
+    build: .
+    # Isolated pool for per-user LLM scoring runs so multiple users' runs can
+    # execute concurrently instead of queueing behind each other one-at-a-time.
+    command: celery -A celery_app worker --loglevel=info --concurrency=${CELERY_SCORE_CONCURRENCY:-4} -Q score -n score@%h -I tasks
     restart: unless-stopped
     environment:
       PYTHONPATH: /app

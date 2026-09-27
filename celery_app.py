@@ -16,6 +16,11 @@ celery_app.conf.update(
     enable_utc=False,
     task_track_started=True,
     worker_prefetch_multiplier=1,
+    task_default_queue="default",
+    task_routes={
+        "tasks.scrape": {"queue": "scrape"},
+        "tasks.score": {"queue": "score"},
+    },
     beat_schedule={
         "check-schedule": {
             "task": "tasks.check_schedule",
