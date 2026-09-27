@@ -3,6 +3,7 @@ Scrape orchestration — fetch and store raw listings only.
 No LLM work here. Scoring is per-user via scorer.py.
 """
 
+import asyncio
 import csv
 import json
 import re
@@ -179,25 +180,19 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
         for c in companies:
             by_platform[c.platform].append(c)
 
-        for platform, platform_companies in by_platform.items():
-            scraper_cls = get_scraper(platform)
-            async with scraper_cls() as scraper:
-                for company in platform_companies:
-                    db.refresh(run)
-                    if run.status == "cancelled":
-                        log("Run cancelled — stopping", "warning")
-                        return
+        sem = asyncio.Semaphore(config.SCRAPE_CONCURRENCY)
 
-                    company_index += 1
-                    log(f"\n[{company_index}/{total_companies}] {company.name} [{platform}]")
+        async def scrape_one(scraper, company: Company, platform: str) -> dict:
+            """Fetch + store one company's listings, using its own DB session
+            so concurrent companies never share a SQLAlchemy session."""
+            async with sem:
+                cdb = SessionLocal()
+                try:
                     company_row = {"name": company.name, **(company.config or {})}
-
                     try:
                         raw_listings = await scraper.fetch_listings(company_row)
                     except Exception as e:
-                        log(f"  Error fetching listings: {e}", "error")
-                        _mark_company_done(db, run, company.id, completed_ids)
-                        continue
+                        return {"company": company, "error": str(e)}
 
                     fetched_count = len(raw_listings)
                     new_count = 0
@@ -206,13 +201,13 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                         if listing.job_id in seen_in_batch:
                             continue
                         existing = (
-                            db.query(JobListing)
+                            cdb.query(JobListing)
                             .filter_by(company_id=company.id, job_req_id=listing.job_id)
                             .first()
                         )
                         if existing:
                             existing.last_seen_at = now_ist()
-                            db.commit()
+                            cdb.commit()
                             continue
 
                         seen_in_batch.add(listing.job_id)
@@ -229,7 +224,7 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                             posted_date = parse_posted_on(listing.posted_on)
 
                         try:
-                            db.add(JobListing(
+                            cdb.add(JobListing(
                                 company_id=company.id,
                                 job_req_id=listing.job_id,
                                 title=listing.title,
@@ -241,13 +236,47 @@ async def _run(db: Session, run_id: int, company_ids: list[int] | None) -> None:
                                 platform=platform,
                                 description=detail.get("description") or None,
                             ))
-                            db.commit()
+                            cdb.commit()
                             new_count += 1
-                            total_new += 1
                         except IntegrityError:
-                            db.rollback()
-                    log(f"  {fetched_count} fetched · {new_count} new")
-                    _mark_company_done(db, run, company.id, completed_ids)
+                            cdb.rollback()
+                    return {"company": company, "fetched_count": fetched_count, "new_count": new_count}
+                finally:
+                    cdb.close()
+
+        for platform, platform_companies in by_platform.items():
+            db.refresh(run)
+            if run.status == "cancelled":
+                log("Run cancelled — stopping", "warning")
+                return
+
+            scraper_cls = get_scraper(platform)
+            async with scraper_cls() as scraper:
+                # Launched up front; `sem` throttles how many actually run at once.
+                tasks = [asyncio.create_task(scrape_one(scraper, c, platform)) for c in platform_companies]
+                try:
+                    for coro in asyncio.as_completed(tasks):
+                        result = await coro
+                        company = result["company"]
+                        company_index += 1
+                        log(f"\n[{company_index}/{total_companies}] {company.name} [{platform}]")
+                        if "error" in result:
+                            log(f"  Error fetching listings: {result['error']}", "error")
+                        else:
+                            log(f"  {result['fetched_count']} fetched · {result['new_count']} new")
+                            total_new += result["new_count"]
+                        _mark_company_done(db, run, company.id, completed_ids)
+
+                        db.refresh(run)
+                        if run.status == "cancelled":
+                            log("Run cancelled — stopping", "warning")
+                            for t in tasks:
+                                t.cancel()
+                            return
+                finally:
+                    # Let any still-pending/cancelled tasks settle before the
+                    # scraper's httpx client closes on `async with` exit.
+                    await asyncio.gather(*tasks, return_exceptions=True)
 
         run.status = "completed"
 

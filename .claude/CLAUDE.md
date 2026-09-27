@@ -68,7 +68,7 @@ Uses OpenRouter API via LangChain. Token costs are tracked per run.
 All long-running work (scraping, scoring) runs as Celery tasks. Beat schedule: `check_schedule_task` every minute, `cleanup_old_listings` daily at 2 AM IST. Scrape and score tasks run on separate queues (`scrape`, `score`; everything else on `default`) via `task_routes` in `celery_app.py`, so a long scoring run for one user can't delay scraping or another user's run — each queue has its own worker pool in production (`docker-compose.yaml`: `worker-scrape`, `worker-score`), independently sized via `CELERY_SCRAPE_CONCURRENCY`/`CELERY_SCORE_CONCURRENCY`.
 
 ### `runner.py` / `scorer.py`
-Orchestration logic called by Celery tasks and the CLI. `runner.py` handles company iteration and scraper dispatch; `scorer.py` manages LLM pipeline execution and cost tracking.
+Orchestration logic called by Celery tasks and the CLI. `runner.py` handles company iteration and scraper dispatch; `scorer.py` manages LLM pipeline execution and cost tracking. Within a scrape run, companies on the same platform are fetched concurrently (bounded by `SCRAPE_CONCURRENCY`, default 5) — each concurrent company uses its own DB session, since a single SQLAlchemy session isn't safe to share across concurrent coroutines. Platforms themselves are still processed one at a time.
 
 ### `notify.py`
 Sends high-scoring job matches to an external Nexus service (`NEXUS_NOTIFY_URL`), which relays them via Telegram bot.
