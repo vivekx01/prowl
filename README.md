@@ -65,11 +65,16 @@ chmod +x setup.sh
 
 The script will:
 - Install Docker if not already present
+- Ask where PostgreSQL and Redis should come from:
+  1. **Create them as containers** (default if you don't run them yourself)
+  2. **Use existing servers** — you enter your `DATABASE_URL` and `REDIS_URL`, and no database containers are created
 - Prompt for your OpenRouter API key and admin password
 - Generate a secure `SECRET_KEY` and database password
-- Write `.env.production` and start all containers
+- Write `.env.production` and start the stack
 
 Once done, Prowl is live at `http://<your-server-ip>`. Log in with `admin@prowl.app` and the password you set.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the manual steps, both database options, and day-to-day commands.
 
 ---
 

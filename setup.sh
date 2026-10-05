@@ -47,6 +47,26 @@ fi
 SECRET_KEY=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
 
+# ── Choose Postgres/Redis source ──────────────────────────────
+echo ""
+echo "Where should Prowl's PostgreSQL and Redis come from?"
+echo "  1) Create them as containers (recommended if you don't already run them)"
+echo "  2) Use existing PostgreSQL and Redis servers I already run"
+read -p "Choose [1/2]: " DB_CHOICE
+case "$DB_CHOICE" in
+    2)
+        USE_BUNDLED=0
+        while [ -z "$EXISTING_DATABASE_URL" ]; do
+            read -p "PostgreSQL URL (e.g. postgresql://user:pass@host:5432/prowl): " EXISTING_DATABASE_URL
+        done
+        read -p "Redis URL [redis://host.docker.internal:6379/0]: " EXISTING_REDIS_URL
+        EXISTING_REDIS_URL=${EXISTING_REDIS_URL:-redis://host.docker.internal:6379/0}
+        ;;
+    *)
+        USE_BUNDLED=1
+        ;;
+esac
+
 # ── Prompt for config ─────────────────────────────────────────
 while [ -z "$OPENROUTER_API_KEY" ]; do
     read -p "Enter your OpenRouter API key: " OPENROUTER_API_KEY
@@ -61,6 +81,16 @@ ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
 SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 PROWL_URL="http://${SERVER_IP:-localhost}"
 
+if [ "$USE_BUNDLED" = "1" ]; then
+    DATABASE_URL="postgresql://prowl:${POSTGRES_PASSWORD}@db:5432/prowl"
+    REDIS_URL="redis://redis:6379/0"
+    COMPOSE_FILES="-f docker-compose.yaml -f docker-compose.bundled.yaml"
+else
+    DATABASE_URL="$EXISTING_DATABASE_URL"
+    REDIS_URL="$EXISTING_REDIS_URL"
+    COMPOSE_FILES="-f docker-compose.yaml"
+fi
+
 # ── Write .env.production ──────────────────────────────────────
 cat > .env.production <<EOF
 # ── Auth ───────────────────────────────────────────────────────
@@ -69,11 +99,12 @@ ADMIN_EMAIL=admin@prowl.app
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
 # ── Database ───────────────────────────────────────────────────
-DATABASE_URL=postgresql://prowl:${POSTGRES_PASSWORD}@db:5432/prowl
+# POSTGRES_PASSWORD is only used when the bundled db container is started
+DATABASE_URL=${DATABASE_URL}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
 # ── Redis ──────────────────────────────────────────────────────
-REDIS_URL=redis://redis:6379/0
+REDIS_URL=${REDIS_URL}
 
 # ── CORS ───────────────────────────────────────────────────────
 ALLOWED_ORIGINS=*
@@ -105,7 +136,10 @@ EOF
 echo ".env.production created."
 
 # ── Start containers ───────────────────────────────────────────
-docker compose --env-file .env.production up -d --build
+# The coolify network is declared external in docker-compose.yaml, so it must exist
+docker network inspect coolify > /dev/null 2>&1 || docker network create coolify > /dev/null
+
+docker compose $COMPOSE_FILES --env-file .env.production up -d --build
 
 echo ""
 echo "=== Done ==="
@@ -119,5 +153,5 @@ echo "  2. Prowl will POST to your endpoint with header 'X-Api-Key' and a JSON b
 echo "     containing the matched jobs, count, chat_id, and a link back to Prowl."
 echo "  3. Set NEXUS_NOTIFY_URL (your webhook URL) and NEXUS_API_KEY (a secret you choose)"
 echo "     in .env.production, then run:"
-echo "     docker compose --env-file .env.production restart api worker"
+echo "     docker compose $COMPOSE_FILES --env-file .env.production restart api worker-scrape worker-score beat"
 echo "  4. Set your Telegram chat ID in Prowl's Settings page."

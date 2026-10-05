@@ -12,11 +12,13 @@ Nginx :80
   ├── /          → serves React static files (built into the image)
   └── /api/      → proxies to FastAPI :8000
                         │
-                        ├── PostgreSQL :5432  (persistent volume)
-                        └── Redis :6379  ←── Celery Worker
+                        ├── PostgreSQL :5432  (bundled container, or your existing server)
+                        └── Redis :6379       (bundled container, or your existing server)
+                               ↑
+                        Celery workers + beat
 ```
 
-All five services run as Docker containers managed by Docker Compose.
+By default the setup script starts PostgreSQL and Redis as containers alongside the app. If you already run PostgreSQL and Redis on this machine or elsewhere, you can point Prowl at them instead and skip those containers. Section 3 explains both options.
 
 ---
 
@@ -26,6 +28,27 @@ A server running Ubuntu 22.04 or 24.04 with:
 - At least 1 GB RAM (2 GB recommended)
 - Git installed (`sudo apt install git`)
 - Ports 80 open in the firewall
+
+If you use existing PostgreSQL and Redis servers, they must be reachable from this server, and the PostgreSQL database and user must already exist.
+
+---
+
+## Quick Start (setup script)
+
+The setup script installs Docker if needed, generates secrets, asks a few questions, and starts everything:
+
+```bash
+git clone https://github.com/vivekx01/prowl.git
+cd prowl
+chmod +x setup.sh
+./setup.sh
+```
+
+It asks for:
+1. **Where PostgreSQL and Redis come from** — containers created by Prowl (option 1), or servers you already run (option 2). See section 3.
+2. **OpenRouter API key** and **admin password**.
+
+It then writes `.env.production` and starts the stack. The sections below cover the same steps by hand, plus the commands for day-to-day use.
 
 ---
 
@@ -75,43 +98,89 @@ cd prowl
 
 ## 3. Configure Environment
 
-Copy the production env template and fill in your secrets:
+Run `./setup.sh` to generate `.env.production` for you. To write it by hand, copy the template and fill in the values for your database mode:
 
 ```bash
-cp .env.production .env.production
+cp .env.example .env.production
 nano .env.production
 ```
 
-The three required fields are:
+Every deployment needs:
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-...        # your OpenRouter key
-SECRET_KEY=                             # any long random string
-POSTGRES_PASSWORD=CHANGE_ME            # pick a strong password
-DATABASE_URL=postgresql://prowl:CHANGE_ME@db:5432/prowl  # same password here
+SECRET_KEY=                            # any long random string (openssl rand -hex 32)
+ADMIN_EMAIL=admin@prowl.app
+ADMIN_PASSWORD=                        # initial admin password
+PROWL_URL=http://<your-server-ip>
 ```
+
+Then pick one database mode.
+
+### Option 1 — Bundled containers (Prowl creates PostgreSQL and Redis)
+
+Set a database password and use the in-network hostnames:
+
+```env
+POSTGRES_PASSWORD=CHANGE_ME            # pick a strong password
+DATABASE_URL=postgresql://prowl:CHANGE_ME@db:5432/prowl   # same password here
+REDIS_URL=redis://redis:6379/0
+```
+
+Start with the bundled override file (see section 4).
+
+### Option 2 — Existing PostgreSQL and Redis
+
+Point Prowl at your servers. Create an empty database for Prowl first; tables are created automatically on first start.
+
+```env
+DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
+REDIS_URL=redis://<host>:6379/0
+```
+
+If PostgreSQL or Redis runs directly on this server (not in another container), use `host.docker.internal` as the host. The containers are configured to resolve it to the host machine:
+
+```env
+DATABASE_URL=postgresql://prowl:<password>@host.docker.internal:5432/prowl
+REDIS_URL=redis://host.docker.internal:6379/0
+```
+
+Make sure PostgreSQL accepts connections from the Docker network (for example, by listening on that interface and allowing the Docker subnet in `pg_hba.conf`). Otherwise the API and workers will fail to start.
+
+Start with the base compose file only (section 4).
 
 Everything else in the file is pre-configured with sensible defaults.
-
-**Generate a secure SECRET_KEY:**
-
-```bash
-openssl rand -hex 32
-```
 
 ---
 
 ## 4. Build and Start
+
+Pick the command that matches the database mode you chose in section 3.
+
+**Option 1 — bundled containers:**
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.bundled.yaml --env-file .env.production up -d --build
+```
+
+This will:
+1. Pull the Postgres 16 and Redis 7 images
+2. Build the Python backend image
+3. Build the React frontend and bundle it into an Nginx image
+4. Start the app, worker, beat, database and Redis containers
+
+**Option 2 — existing PostgreSQL and Redis:**
 
 ```bash
 docker compose --env-file .env.production up -d --build
 ```
 
 This will:
-1. Pull Postgres 16 and Redis 7 images
-2. Build the Python backend image
-3. Build the React frontend and bundle it into an Nginx image
-4. Start all five containers
+1. Build the Python backend image
+2. Build the React frontend and bundle it into an Nginx image
+3. Start the app, worker, beat and Nginx containers
+
+The `coolify` network is declared in the compose file. If it doesn't exist on your server, create it once with `docker network create coolify`. The setup script does this for you.
 
 First build takes 3–5 minutes. Subsequent builds are faster due to layer caching.
 
@@ -121,18 +190,24 @@ First build takes 3–5 minutes. Subsequent builds are faster due to layer cachi
 docker compose ps
 ```
 
-You should see all five services with status `running` or `healthy`:
+With bundled containers you should see these services `running` (`db` and `redis` report `healthy`):
 
 ```
-NAME             STATUS
-prowl-db-1       running (healthy)
-prowl-redis-1    running
-prowl-api-1      running
-prowl-worker-1   running
-prowl-nginx-1    running
+NAME                    STATUS
+prowl-db-1              running (healthy)
+prowl-redis-1           running (healthy)
+prowl-api-1             running
+prowl-worker-scrape-1   running
+prowl-worker-score-1    running
+prowl-beat-1            running
+prowl-nginx-1           running
 ```
+
+With existing servers, the `db` and `redis` containers are absent.
 
 Open `http://<your-server-ip>` in a browser. The login page should appear.
+
+> **Note:** `nginx` exposes port 80 inside the Docker network but does not publish it to the host. If you're not running behind Coolify or another reverse proxy, you need to publish the port yourself (for example, add `ports: ["80:80"]` to the `nginx` service) before the URL above will load.
 
 ---
 
@@ -146,15 +221,21 @@ http://<your-server-ip>
 
 Register an account — this becomes your admin account. Don't share the registration link before doing this.
 
+The admin account created by the setup script (`admin@prowl.app`) is seeded at startup. Use the admin page to create other users.
+
 ---
 
 ## Common Commands
 
+These commands assume you are in the project directory. For bundled mode, add `-f docker-compose.yaml -f docker-compose.bundled.yaml` after `docker compose`, as in section 4. The examples below use the existing-servers form.
+
 **View logs for a specific service:**
 ```bash
-docker compose logs -f api       # FastAPI
-docker compose logs -f worker    # Celery worker
-docker compose logs -f nginx     # Nginx
+docker compose logs -f api              # FastAPI
+docker compose logs -f worker-scrape    # Celery worker: scrape queue
+docker compose logs -f worker-score     # Celery worker: score queue
+docker compose logs -f beat             # Celery beat scheduler
+docker compose logs -f nginx            # Nginx
 ```
 
 **Restart a single service:**
@@ -167,15 +248,17 @@ docker compose restart api
 docker compose down
 ```
 
-**Stop and wipe the database (destructive):**
+**Stop and wipe bundled database and Redis data (destructive):**
 ```bash
-docker compose down -v
+docker compose -f docker-compose.yaml -f docker-compose.bundled.yaml down -v
 ```
 
-**Open a Postgres shell:**
+**Open a Postgres shell (bundled mode only):**
 ```bash
-docker compose exec db psql -U prowl -d prowl
+docker compose -f docker-compose.yaml -f docker-compose.bundled.yaml exec db psql -U prowl -d prowl
 ```
+
+With existing servers, connect with your normal PostgreSQL client using the credentials in `DATABASE_URL`.
 
 ---
 
@@ -185,11 +268,11 @@ docker compose exec db psql -U prowl -d prowl
 # Pull latest code
 git pull
 
-# Rebuild and restart (zero-downtime for the DB and Redis)
+# Rebuild and restart (bundled mode: add the -f flags from section 4)
 docker compose --env-file .env.production up -d --build
 ```
 
-Docker Compose will only rebuild the containers whose source changed and restart them. The Postgres volume is preserved.
+Docker Compose only rebuilds the containers whose source changed and restarts them. Bundled Postgres and Redis data is kept in named volumes (`pgdata`, `redisdata`) and survives updates.
 
 ---
 
@@ -207,11 +290,18 @@ sudo systemctl stop nginx
 ```bash
 docker compose logs api
 ```
-Usually a missing or wrong env var — double-check `.env.production`, especially `DATABASE_URL` and `POSTGRES_PASSWORD` match.
+Usually a missing or wrong env var. Check `.env.production`, especially `DATABASE_URL` (and `POSTGRES_PASSWORD` in bundled mode, which must match the password in `DATABASE_URL`).
 
-**Database connection refused on startup:**
+**"could not translate host name" / "Connection refused" on startup (existing servers):**
 
-The API waits for Postgres to pass its healthcheck before starting. If Postgres is slow to initialise (first run), the API may restart once before succeeding. This is normal — Docker Compose will retry automatically.
+The host in `DATABASE_URL` or `REDIS_URL` isn't reachable from the containers. Check that:
+- You used `host.docker.internal` (not `localhost`) for a server on this machine.
+- PostgreSQL and Redis listen on an address the Docker network can reach.
+- Firewall rules allow the connection.
+
+**Database connection refused on startup (bundled containers):**
+
+The app containers wait for Postgres and Redis to pass their healthchecks before starting. If Postgres is slow to initialise on the first run, `docker compose ps` may show a restart or two. This is normal.
 
 **Frontend shows blank page or 404 on refresh:**
 

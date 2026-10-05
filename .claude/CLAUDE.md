@@ -26,8 +26,11 @@ npm run build        # TypeScript + TailwindCSS production build
 
 ### Docker (Production)
 ```bash
+# Existing PostgreSQL/Redis (DATABASE_URL/REDIS_URL point at them)
 docker compose --env-file .env.production up -d --build
-docker compose logs -f <service>   # services: db, redis, api, worker-scrape, worker-score, beat, nginx
+# Bundled PostgreSQL/Redis containers (setup.sh option 1)
+docker compose -f docker-compose.yaml -f docker-compose.bundled.yaml --env-file .env.production up -d --build
+docker compose logs -f <service>   # services: api, worker-scrape, worker-score, beat, nginx (+ db, redis when bundled)
 docker compose restart <service>
 ```
 
@@ -95,4 +98,4 @@ All timestamps use IST (Asia/Kolkata). Celery Beat schedules are defined in IST.
 
 ## CI/CD
 
-Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) → SSH into server → `docker compose up -d --build`. Requires secrets: `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
+Manual only: the deploy workflow (`.github/workflows/deploy.yml`) runs on `workflow_dispatch`, not on push. It SSHes into the server, runs `git pull` in `/opt/prowl`, then `docker compose up -d --build` with the base compose file. Requires secrets: `SSH_HOST`, `SSH_USER`, `SSH_KEY`. Because the server uses the base file, the bundled `db`/`redis` containers are not started there.

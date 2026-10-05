@@ -14,6 +14,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    # Lets DATABASE_URL/REDIS_URL point at a Postgres/Redis running on the host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
       - coolify
@@ -35,6 +38,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    # Lets DATABASE_URL/REDIS_URL point at a Postgres/Redis running on the host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
       - coolify
@@ -56,6 +62,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    # Lets DATABASE_URL/REDIS_URL point at a Postgres/Redis running on the host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
       - coolify
@@ -75,6 +84,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PROWL_URL: ${PROWL_URL}
+    # Lets DATABASE_URL/REDIS_URL point at a Postgres/Redis running on the host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
       - coolify
