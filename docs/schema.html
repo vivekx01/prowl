@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prowl — Database Schema</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #6ea8fe;
+    --accent-2: #7ee8b8;
+    --accent-3: #f5b971;
+    --accent-4: #f28b82;
+    --mono: "SF Mono", Consolas, "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    padding: 2.5rem 1.5rem 5rem;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+  .sub { color: var(--muted); margin-bottom: 2.5rem; font-size: 0.95rem; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* ER diagram grid */
+  .diagram {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+  @media (max-width: 1000px) { .diagram { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .diagram { grid-template-columns: 1fr; } }
+
+  .table-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-card .head {
+    padding: 0.6rem 0.9rem;
+    font-weight: 600;
+    font-size: 0.92rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-card .head .tag {
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.1rem 0.45rem;
+    border-radius: 99px;
+    color: #0f1115;
+  }
+  .table-card .rows { padding: 0.4rem 0; }
+  .row {
+    padding: 0.28rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--muted);
+    display: flex;
+    gap: 0.4rem;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .row .col { color: var(--text); }
+  .row.pk .col { color: var(--accent-3); font-weight: 600; }
+  .row.fk .col { color: var(--accent); }
+  .row.uq::after { content: "UQ"; margin-left: auto; font-size: 0.6rem; color: var(--accent-2); }
+
+  .core .head .tag { background: var(--accent); }
+  .scrape .head .tag { background: var(--accent-3); }
+  .score .head .tag { background: var(--accent-2); }
+  .user .head .tag { background: var(--accent-4); }
+
+  /* Flow section */
+  h2 { font-size: 1.15rem; margin-top: 2.5rem; margin-bottom: 1rem; border-left: 3px solid var(--accent); padding-left: 0.6rem; }
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.85rem;
+  }
+  .step b { color: var(--accent); }
+  .arrow { color: var(--muted); font-size: 1.1rem; }
+
+  table.legend {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+  table.legend th, table.legend td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.legend th { background: var(--panel-2); color: var(--muted); font-weight: 600; }
+  table.legend td.name { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
+  table.legend tr:nth-child(even) td { background: #14171e; }
+
+  code.inline { font-family: var(--mono); background: var(--panel-2); padding: 0.1rem 0.35rem; border-radius: 4px; color: var(--accent-2); font-size: 0.85em; }
+
+  .note {
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-3);
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 1rem 0;
+  }
+
+  .conn-note { font-size: 0.78rem; color: var(--muted); margin-top: -0.5rem; margin-bottom: 1.5rem; }
+  .conn-note b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Prowl — Database Schema</h1>
+  <div class="sub">PostgreSQL · SQLAlchemy ORM (<code class="inline">db/models.py</code>) · no migration framework, tables created via <code class="inline">create_all()</code> + hand-written <code class="inline">ALTER TABLE</code> in <code class="inline">_migrate()</code></div>
+
+  <div class="diagram">
+
+    <div class="table-card user">
+      <div class="head">users <span class="tag">AUTH</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row uq"><span class="col">email</span></div>
+        <div class="row"><span class="col">password_hash</span></div>
+        <div class="row"><span class="col">name</span></div>
+        <div class="row"><span class="col">is_admin</span></div>
+        <div class="row"><span class="col">is_active</span></div>
+        <div class="row"><span class="col">created_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card user">
+      <div class="head">api_keys <span class="tag">AUTH</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">user_id &rarr; users.id</span></div>
+        <div class="row uq"><span class="col">key_hash</span></div>
+        <div class="row"><span class="col">key_prefix</span></div>
+        <div class="row"><span class="col">label</span></div>
+        <div class="row"><span class="col">created_at</span></div>
+        <div class="row"><span class="col">last_used_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card user">
+      <div class="head">profile <span class="tag">AUTH</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">user_id &rarr; users.id</span></div>
+        <div class="row"><span class="col">content (resume text)</span></div>
+        <div class="row"><span class="col">updated_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card user">
+      <div class="head">settings <span class="tag">AUTH</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk uq"><span class="col">user_id &rarr; users.id</span></div>
+        <div class="row uq"><span class="col">key</span></div>
+        <div class="row"><span class="col">value</span></div>
+      </div>
+    </div>
+
+    <div class="table-card core">
+      <div class="head">companies <span class="tag">CORE</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row uq"><span class="col">name</span></div>
+        <div class="row"><span class="col">platform (workday/greenhouse/...)</span></div>
+        <div class="row"><span class="col">active</span></div>
+        <div class="row"><span class="col">config (JSON, per-scraper opts)</span></div>
+        <div class="row"><span class="col">created_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card core" style="grid-column: span 2;">
+      <div class="head">job_listings <span class="tag">CORE</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">company_id &rarr; companies.id</span></div>
+        <div class="row uq"><span class="col">job_req_id  (uniq w/ company_id)</span></div>
+        <div class="row"><span class="col">title, location, department</span></div>
+        <div class="row"><span class="col">posted_on (raw str) / posted_date (parsed)</span></div>
+        <div class="row"><span class="col">url, platform, description</span></div>
+        <div class="row"><span class="col">first_seen_at / last_seen_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card user">
+      <div class="head">applications <span class="tag">TRACKING</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">listing_id &rarr; job_listings.id</span></div>
+        <div class="row fk uq"><span class="col">user_id &rarr; users.id</span></div>
+        <div class="row"><span class="col">status (saved/applied/...)</span></div>
+        <div class="row"><span class="col">applied_at, notes</span></div>
+        <div class="row"><span class="col">created_at / updated_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card score">
+      <div class="head">job_scores <span class="tag">LLM</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">listing_id &rarr; job_listings.id</span></div>
+        <div class="row fk uq"><span class="col">user_id &rarr; users.id</span></div>
+        <div class="row"><span class="col">score (0-100)</span></div>
+        <div class="row"><span class="col">verdict (apply/maybe/skip)</span></div>
+        <div class="row"><span class="col">reason</span></div>
+        <div class="row"><span class="col">processed_at</span></div>
+      </div>
+    </div>
+
+    <div class="table-card scrape" style="grid-column: span 2;">
+      <div class="head">scrape_runs <span class="tag">RUN</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row"><span class="col">celery_task_id, status</span></div>
+        <div class="row"><span class="col">started_at / finished_at</span></div>
+        <div class="row"><span class="col">company_ids (requested scope, JSON)</span></div>
+        <div class="row"><span class="col">completed_company_ids (resume cursor)</span></div>
+        <div class="row"><span class="col">companies_total / companies_done</span></div>
+        <div class="row"><span class="col">new_listings, apply_count</span></div>
+        <div class="row"><span class="col">input_tokens / output_tokens</span></div>
+      </div>
+    </div>
+
+    <div class="table-card scrape">
+      <div class="head">scrape_run_logs <span class="tag">RUN</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">run_id &rarr; scrape_runs.id</span></div>
+        <div class="row"><span class="col">timestamp, level, message</span></div>
+      </div>
+    </div>
+
+    <div class="table-card score" style="grid-column: span 2;">
+      <div class="head">score_runs <span class="tag">RUN</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">user_id &rarr; users.id</span></div>
+        <div class="row"><span class="col">celery_task_id, status</span></div>
+        <div class="row"><span class="col">started_at / finished_at</span></div>
+        <div class="row"><span class="col">companies_total / companies_done, current_company_id</span></div>
+        <div class="row"><span class="col">company_results (JSON), company_ids, days_back</span></div>
+        <div class="row"><span class="col">apply_count</span></div>
+        <div class="row"><span class="col">filter/score input/output tokens, cached_tokens, cost_usd</span></div>
+      </div>
+    </div>
+
+    <div class="table-card score">
+      <div class="head">score_run_logs <span class="tag">RUN</span></div>
+      <div class="rows">
+        <div class="row pk"><span class="col">id</span></div>
+        <div class="row fk"><span class="col">run_id &rarr; score_runs.id</span></div>
+        <div class="row"><span class="col">timestamp, level, message</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>How the pieces connect</h2>
+  <div class="note">
+    <b>companies</b> &rarr; <b>job_listings</b> (1:many, deduped by <code class="inline">company_id + job_req_id</code>) &rarr; <b>job_scores</b> + <b>applications</b> (1:many per user, each capped at one row per user+listing via a unique constraint).
+    <br><br>
+    <b>job_scores</b> and <b>applications</b> are both scoped by <code class="inline">user_id</code> — the same listing can carry a different score and application status per user, since Prowl is multi-tenant (multiple users can each run their own resume against the same scraped listings).
+    <br><br>
+    <b>scrape_runs</b>/<b>score_runs</b> don't have FKs into the data they produce — they're just progress/telemetry rows per Celery task run, with their own <code class="inline">*_run_logs</code> child tables for streamed log lines (shown live in the UI while a run is in progress).
+  </div>
+
+  <h2>Lifecycle: one scrape → score → apply cycle</h2>
+  <div class="flow">
+    <div class="step"><b>1.</b> Celery Beat / manual trigger</div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>2.</b> new <code class="inline">scrape_runs</code> row (status=pending)</div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>3.</b> per-company scrape, insert/touch <code class="inline">job_listings</code></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>4.</b> run completes &rarr; if user has <code class="inline">score_align_with_scraping</code> setting, auto-queue a score run</div>
+  </div>
+  <div class="flow">
+    <div class="step"><b>5.</b> new <code class="inline">score_runs</code> row (per user)</div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>6.</b> Stage 1 filter + Stage 2 score against <code class="inline">profile.content</code></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>7.</b> insert <code class="inline">job_scores</code> row per listing (score, verdict, reason)</div>
+    <div class="arrow">&rarr;</div>
+    <div class="step"><b>8.</b> high scorers &rarr; <code class="inline">notify.py</code> &rarr; Telegram</div>
+  </div>
+  <div class="flow">
+    <div class="step"><b>9.</b> user reviews in UI, creates/updates an <code class="inline">applications</code> row (saved &rarr; applied &rarr; ...)</div>
+  </div>
+
+  <h2>Key constraints &amp; design notes</h2>
+  <table class="legend">
+    <tr><th>Rule</th><th>Where</th><th>Why</th></tr>
+    <tr>
+      <td class="name">uq_company_job</td>
+      <td>job_listings (company_id, job_req_id)</td>
+      <td>Prevents re-inserting the same posting on every scrape; existing rows just get <code class="inline">last_seen_at</code> bumped.</td>
+    </tr>
+    <tr>
+      <td class="name">uq_user_listing_score</td>
+      <td>job_scores (user_id, listing_id)</td>
+      <td>One score per user per listing — re-scoring overwrites rather than duplicates.</td>
+    </tr>
+    <tr>
+      <td class="name">uq_user_listing_app</td>
+      <td>applications (user_id, listing_id)</td>
+      <td>One application-tracking row per user per listing.</td>
+    </tr>
+    <tr>
+      <td class="name">uq_user_setting</td>
+      <td>settings (user_id, key)</td>
+      <td>Per-user key/value settings store (e.g. <code class="inline">score_align_with_scraping</code>), no fixed schema needed per setting.</td>
+    </tr>
+    <tr>
+      <td class="name">no migration framework</td>
+      <td>db/database.py: <code class="inline">_migrate()</code></td>
+      <td>Tables are created via <code class="inline">create_all()</code> on a fresh DB; existing deployments get hand-written <code class="inline">ALTER TABLE</code> statements run idempotently on every startup instead of Alembic-style versioned migrations.</td>
+    </tr>
+    <tr>
+      <td class="name">retention</td>
+      <td>runner.py: <code class="inline">cleanup_old_listings</code></td>
+      <td>Listings older than <code class="inline">LISTING_RETENTION_DAYS</code> are purged daily (2 AM IST via Celery Beat), unless tied to an <code class="inline">applications</code> row — so tracked jobs never silently disappear.</td>
+    </tr>
+    <tr>
+      <td class="name">nullable user_id on scores/applications</td>
+      <td>job_scores.user_id, applications.user_id</td>
+      <td>Nullable for legacy/system rows, but in practice always set once multi-user auth is in place.</td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>
