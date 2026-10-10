@@ -52,15 +52,12 @@ type FilterKey = "fresh" | "skipped" | "all";
 interface FilterConfig {
   label: string;
   queryVerdict: string | null;
-  clientFilter: ((job: Job) => boolean) | null;
 }
 
-const FRESH_STATUSES = new Set(["saved"]);
-
 const FILTER_CONFIG: Record<FilterKey, FilterConfig> = {
-  fresh:   { label: "Fresh",   queryVerdict: "apply", clientFilter: j => !j.application || FRESH_STATUSES.has(j.application.status) },
-  skipped: { label: "Skipped", queryVerdict: "skip",  clientFilter: null },
-  all:     { label: "All",     queryVerdict: null,    clientFilter: null },
+  fresh:   { label: "Fresh",   queryVerdict: "apply" },
+  skipped: { label: "Skipped", queryVerdict: "skip" },
+  all:     { label: "All",     queryVerdict: null },
 };
 
 const ALL_FILTERS: FilterKey[] = ["fresh", "skipped", "all"];
@@ -322,25 +319,30 @@ export default function JobsPage() {
   function changeSearch(v: string) { setSearch(v); setPage(1); }
 
   const { data, isLoading } = useQuery<JobsPage>({
-    queryKey: ["jobs", cfg.queryVerdict, filter === "fresh" ? scoreMin : null, page, search || null],
+    queryKey: ["jobs", filter, filter === "fresh" ? scoreMin : null, page, search || null],
     queryFn: () =>
-      api.get("/jobs", {
-        params: {
-          verdict: cfg.queryVerdict ?? undefined,
-          score_min: filter === "fresh" ? scoreMin : undefined,
-          search: search.trim() || undefined,
-          page,
-          page_size: PAGE_SIZE,
-        },
-      }).then(r => r.data),
+      filter === "fresh"
+        ? api.get("/jobs/recommended", {
+            params: {
+              score_min: scoreMin,
+              search: search.trim() || undefined,
+              page,
+              page_size: PAGE_SIZE,
+            },
+          }).then(r => r.data)
+        : api.get("/jobs", {
+            params: {
+              verdict: cfg.queryVerdict ?? undefined,
+              search: search.trim() || undefined,
+              page,
+              page_size: PAGE_SIZE,
+            },
+          }).then(r => r.data),
   });
 
-  const rawJobs = data?.items ?? [];
+  const displayJobs = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const displayJobs = cfg.clientFilter ? rawJobs.filter(cfg.clientFilter) : rawJobs;
-  const hiddenCount = filter === "fresh" ? rawJobs.length - displayJobs.length : 0;
   const groups = groupByScrapedDate(displayJobs);
 
   return (
@@ -351,9 +353,6 @@ export default function JobsPage() {
           <h1 className="text-xl font-semibold text-slate-100">Recommendations</h1>
           <p className="text-sm text-slate-500 mt-0.5">
             {total} listing{total !== 1 ? "s" : ""}
-            {hiddenCount > 0 && (
-              <span className="text-slate-700"> · {hiddenCount} reviewed hidden</span>
-            )}
           </p>
         </div>
         <Link to={isAdmin ? "/scrape" : "/scan"} className="btn-primary flex items-center gap-2 text-sm">
@@ -420,16 +419,12 @@ export default function JobsPage() {
           {displayJobs.length === 0 ? (
             <div className="card p-16 text-center">
               <p className="text-slate-400 font-medium">
-                {hiddenCount > 0 ? "All caught up!" : `No ${cfg.label.toLowerCase()} jobs`}
+                {`No ${cfg.label.toLowerCase()} jobs`}
               </p>
               <p className="text-sm text-slate-600 mt-1">
-                {hiddenCount > 0
-                  ? page < totalPages
-                    ? `All ${hiddenCount} job${hiddenCount !== 1 ? "s" : ""} on this page are already reviewed — check the next page for more.`
-                    : `${hiddenCount} job${hiddenCount !== 1 ? "s" : ""} already reviewed — switch to "All" to see them.`
-                  : filter === "fresh"
-                    ? <><Link to="/scrape" className="text-violet-400 hover:text-violet-300 transition-colors">Run a scrape</Link> to populate listings.</>
-                    : "Nothing here yet."
+                {filter === "fresh"
+                  ? <><Link to="/scrape" className="text-violet-400 hover:text-violet-300 transition-colors">Run a scrape</Link> to populate listings.</>
+                  : "Nothing here yet."
                 }
               </p>
             </div>
